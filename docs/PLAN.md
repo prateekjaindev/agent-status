@@ -19,7 +19,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 | T03 | Hook test harness: subprocess runs, timing, garbage input | 0 Stabilize | M | done | |
 | T04 | Clean up stale state files | 0 Stabilize | S | done | |
 | T05 | Real-device and live-agent verification | 0 Stabilize | M | todo, **needs a human** | T01 |
-| T06 | `/status` JSON contract: schema doc and version field | 1 Release | S | todo | |
+| T06 | `/status` JSON contract: schema doc and version field | 1 Release | S | done | |
 | T07 | Demo mode for screenshots | 1 Release | S | todo | T06 |
 | T08 | Single-source version, CHANGELOG, PyPI release workflow | 1 Release | M | todo | T02 |
 | T09 | AUR package and Homebrew tap | 1 Release | M | todo, **needs a human** | T08 |
@@ -48,7 +48,8 @@ Working and verified on Linux (Omarchy, Python 3.14) with an iPad on the LAN:
 - **Hooks:** Claude Code and Cursor, live. Allow/Deny from the dashboard was tested against a live Claude Code session in a desktop browser.
 - **Readers:** Claude transcripts (tokens, cost, tok/s, context), opencode database (state, real cost, tok/s), Codex session logs (tokens, context, rate limits), and Omarchy's usage files (plan limits, 7-day history).
 - **Machine stats on Linux:** CPU, GPU (NVIDIA and AMD), memory, network, disks, batteries.
-- **Installer and tests:** the interactive installer works, 61 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
+- **API:** `/status` carries `schema: 1`, its full shape is documented in [`docs/api.md`](api.md), and a contract test builds a snapshot from fixtures.
+- **Installer and tests:** the interactive installer works, 63 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
 
 Built from documentation but **not yet run against the real thing**:
 
