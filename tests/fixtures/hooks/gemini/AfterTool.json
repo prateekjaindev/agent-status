@@ -1,0 +1,15 @@
+{
+  "session_id": "e3c2fa00-0000-4000-8000-000000000004",
+  "transcript_path": "/Users/me/.gemini/tmp/agent-status/chats/session-2026-10-25-04.json",
+  "cwd": "/Users/me/src/agent-status",
+  "hook_event_name": "AfterTool",
+  "timestamp": "2026-10-25T10:00:00.000Z",
+  "tool_name": "run_shell_command",
+  "tool_input": {
+    "command": "python -m unittest discover -s tests"
+  },
+  "tool_response": {
+    "llmContent": "OK",
+    "returnDisplay": "OK"
+  }
+}

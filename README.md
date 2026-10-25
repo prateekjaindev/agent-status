@@ -69,7 +69,7 @@ When Claude Code or Codex asks permission to run a tool, its card shows the exac
 - The hook only waits while a dashboard is open (one has polled in the last 10 seconds). With no tablet watching, prompts behave exactly as before.
 - Any error, timeout or stale tap means "no decision", never an automatic allow. Your deny rules still apply on top of an Allow.
 - GitHub Copilot CLI shows the prompt as *needs you* but has no buttons: its `permissionRequest` hook runs before its own rules and session approvals, so waiting there would stall tool calls you had already allowed.
-- Upgrading from an earlier version? Run `agent-status install` again to add the permission hook (Claude Code) and its longer timeout (Codex), then restart running agents. Codex may ask you to trust the changed hook.
+- Upgrading from an earlier version? Run `agent-status doctor`; if it reports stale hooks, run `agent-status install` again, then restart running agents. Codex may ask you to trust the changed hook.
 
 If the page doesn't load, the computer's firewall is the usual cause (`sudo ufw allow 8787/tcp`). If the `.local` name doesn't resolve, use the IP link or reserve the computer's address in your router.
 

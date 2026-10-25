@@ -1,0 +1,13 @@
+{
+  "conversation_id": "d2b1ef00-0000-4000-8000-000000000001",
+  "generation_id": "gen-001",
+  "model": "claude-sonnet-4",
+  "model_id": "claude-sonnet-4",
+  "hook_event_name": "sessionStart",
+  "cursor_version": "1.7.2",
+  "workspace_roots": [
+    "/Users/me/src/agent-status"
+  ],
+  "user_email": "me@example.com",
+  "transcript_path": "/Users/me/.cursor/projects/Users-me-src-agent-status/agent-transcripts/d2b1ef00-0000-4000-8000-000000000001.jsonl"
+}

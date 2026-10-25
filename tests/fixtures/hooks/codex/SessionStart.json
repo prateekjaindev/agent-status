@@ -1,0 +1,9 @@
+{
+  "session_id": "thr_agentstatus001",
+  "transcript_path": "/Users/me/.codex/sessions/2026/10/25/rollout-2026-10-25T10-00-00-thr_agentstatus001.jsonl",
+  "cwd": "/Users/me/src/agent-status",
+  "hook_event_name": "SessionStart",
+  "model": "gpt-5.1-codex",
+  "permission_mode": "default",
+  "source": "startup"
+}

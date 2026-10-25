@@ -37,13 +37,17 @@ def save_json(path, cfg):
 
 def nested(path, events, entry, matcher=None, per_event=None):
     """{"hooks": {Event: [{"matcher"?: .., "hooks": [{"type": "command", "command": ..}]}]}}
-    Used by Claude Code, Codex and Gemini CLI. per_event overrides entry fields for some events."""
+    Used by Claude Code, Codex and Gemini CLI. per_event overrides entry fields for some events.
+    Returns (install, uninstall, stale): stale(cmd) lists events whose hooks are missing or out of date."""
+    def fields_for(cmd, ev):
+        return {"type": "command", "command": cmd, **entry, **(per_event or {}).get(ev, {})}
+
     def install(cmd):
         cfg = load_json(path)
         hooks = cfg.setdefault("hooks", {})
         for ev in events:
             groups = hooks.setdefault(ev, [])
-            fields = {"type": "command", "command": cmd, **entry, **(per_event or {}).get(ev, {})}
+            fields = fields_for(cmd, ev)
             mine = [h for g in groups for h in g.get("hooks", []) if ours(h.get("command"))]
             for h in mine:
                 h.update(fields)  # an older install may carry a stale path or timeout
@@ -69,18 +73,34 @@ def nested(path, events, entry, matcher=None, per_event=None):
         if json.dumps(cfg) != before:
             save_json(path, cfg)
 
-    return install, uninstall
+    def stale(cmd_current):
+        cfg = load_json(path)
+        hooks = cfg.get("hooks") or {}
+        out = []
+        for ev in events:
+            fields = fields_for(cmd_current, ev)
+            mine = [h for g in hooks.get(ev) or [] if isinstance(g, dict)
+                    for h in g.get("hooks") or [] if isinstance(h, dict) and ours(h.get("command"))]
+            if not mine or any(not all(h.get(k) == v for k, v in fields.items()) for h in mine):
+                out.append(ev)
+        return out
+
+    return install, uninstall, stale
 
 
 def flat(path, events):
-    """{"version": 1, "hooks": {event: [{"command": ..}]}} — Cursor."""
+    """{"version": 1, "hooks": {event: [{"command": ..}]}} — Cursor.
+    Returns (install, uninstall, stale)."""
     def install(cmd):
         cfg = load_json(path)
         cfg.setdefault("version", 1)
         hooks = cfg.setdefault("hooks", {})
         for ev in events:
             lst = hooks.setdefault(ev, [])
-            if not any(ours(h.get("command")) for h in lst):
+            mine = [h for h in lst if isinstance(h, dict) and ours(h.get("command"))]
+            for h in mine:
+                h["command"] = cmd  # reinstall must update a moved executable, not keep the first one
+            if not mine:
                 lst.append({"command": cmd})
         save_json(path, cfg)
 
@@ -97,12 +117,18 @@ def flat(path, events):
         if json.dumps(cfg) != before:
             save_json(path, cfg)
 
-    return install, uninstall
+    def stale(cmd):
+        hooks = (load_json(path).get("hooks") or {})
+        return [ev for ev in events
+                if not any(isinstance(h, dict) and h.get("command") == cmd for h in hooks.get(ev) or [])]
+
+    return install, uninstall, stale
 
 
 def own_file(path, events):
     """A hooks file that belongs to agent-status alone — GitHub Copilot CLI reads every ~/.copilot/hooks/*.json.
-    Copilot's payloads don't name the event, so the command passes it as an argument."""
+    Copilot's payloads don't name the event, so the command passes it as an argument.
+    Returns (install, uninstall, stale)."""
     def install(cmd):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"version": 1, "hooks": {
@@ -111,7 +137,13 @@ def own_file(path, events):
     def uninstall():
         path.unlink(missing_ok=True)
 
-    return install, uninstall
+    def stale(cmd):
+        hooks = (load_json(path).get("hooks") or {})
+        return [ev for ev in events
+                if not any(isinstance(h, dict) and h.get("bash") == f"{cmd} {ev}" and h.get("type") == "command"
+                           for h in hooks.get(ev) or [])]
+
+    return install, uninstall, stale
 
 
 # ---------- registry ----------
@@ -143,6 +175,10 @@ class Agent:
     def uninstall(self):
         if self.hook_files:
             self.hook_files[1]()
+
+    def stale(self, exe):
+        """Events whose installed hooks are missing or differ from what `install` would write."""
+        return self.hook_files[2](f"{exe} hook {self.key}") if self.hook_files else []
 
 
 CLAUDE_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification",

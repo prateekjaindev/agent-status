@@ -4,6 +4,7 @@
                                  choose agents, add their hooks, start the background service
   agent-status uninstall         remove every hook and the service
   agent-status agents            list supported agents and what was detected
+  agent-status doctor            check that installed hooks match this version
   agent-status serve             run the dashboard server in the foreground
   agent-status url               print the dashboard links
   agent-status hook AGENT [EVENT]   (called by agent hooks; reads the event JSON on stdin)
@@ -38,6 +39,9 @@ def main(argv=None):
         enabled = enabled_agents()
         table(enabled if enabled is not None else set())
         print("  [x] = tracked (from `agent-status install`)" if enabled is not None else "  not installed yet: run `agent-status install`")
+    elif cmd == "doctor":
+        from .install import doctor
+        sys.exit(doctor())
     elif cmd in ("-V", "--version", "version"):
         print(__version__)
     else:

@@ -1,0 +1,7 @@
+{
+  "sessionId": "f4d3ab00-0000-4000-8000-000000000006",
+  "timestamp": 1761386400006,
+  "cwd": "/Users/me/src/agent-status",
+  "notification_type": "permission_request",
+  "message": "GitHub Copilot CLI needs permission to run a command"
+}

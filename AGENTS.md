@@ -14,7 +14,7 @@ serves a live dashboard to a tablet or phone on the LAN. **Picking up work or pl
 | `agent_status/claude.py`, `codex.py`, `opencode.py`, `omarchy.py` | readers for each agent's own data |
 | `agent_status/procs.py`, `system.py`, `gitinfo.py` | process table, machine stats (Linux `/proc`+`/sys`, macOS commands), git status |
 | `agent_status/server.py` | static files, `GET /status`, `POST /decide` |
-| `agent_status/install.py` | interactive install/uninstall, systemd or launchd service |
+| `agent_status/install.py` | interactive install/uninstall, `doctor`, systemd or launchd service |
 | `agent_status/web/` | the dashboard: plain HTML/CSS/JS, no build step |
 | `tests/` | `unittest`, fixtures under `tests/fixtures/` |
 
@@ -22,6 +22,7 @@ serves a live dashboard to a tablet or phone on the LAN. **Picking up work or pl
 
 ```bash
 python -m unittest discover -s tests        # all tests; must stay green on Linux and macOS
+python -m agent_status doctor               # check installed hooks against agents.py
 python -m agent_status serve                # run from the checkout (port 8787, AGENT_STATUS_PORT to change)
 uv tool install --editable .                # install the CLI from this checkout
 python scripts/make_icons.py                # regenerate web/icon-*.png

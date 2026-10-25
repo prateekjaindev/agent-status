@@ -1,0 +1,11 @@
+{
+  "sessionId": "f4d3ab00-0000-4000-8000-000000000004",
+  "timestamp": 1761386400004,
+  "cwd": "/Users/me/src/agent-status",
+  "toolName": "bash",
+  "toolArgs": "{\"command\": \"python -m unittest discover -s tests\"}",
+  "toolResult": {
+    "resultType": "success",
+    "textResultForLlm": "OK"
+  }
+}

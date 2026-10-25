@@ -16,7 +16,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 |---|---|---|---|---|---|
 | T01 | Fix the macOS smoke test and the `.local.local` link | 0 Stabilize | S | done | |
 | T02 | Pin CI actions and add Dependabot | 0 Stabilize | S | done | |
-| T03 | Hook test harness: subprocess runs, timing, garbage input | 0 Stabilize | M | todo | |
+| T03 | Hook test harness: subprocess runs, timing, garbage input | 0 Stabilize | M | done | |
 | T04 | Clean up stale state files | 0 Stabilize | S | todo | |
 | T05 | Real-device and live-agent verification | 0 Stabilize | M | todo, **needs a human** | T01 |
 | T06 | `/status` JSON contract: schema doc and version field | 1 Release | S | todo | |
@@ -48,7 +48,7 @@ Working and verified on Linux (Omarchy, Python 3.14) with an iPad on the LAN:
 - **Hooks:** Claude Code and Cursor, live. Allow/Deny from the dashboard was tested against a live Claude Code session in a desktop browser.
 - **Readers:** Claude transcripts (tokens, cost, tok/s, context), opencode database (state, real cost, tok/s), Codex session logs (tokens, context, rate limits), and Omarchy's usage files (plan limits, 7-day history).
 - **Machine stats on Linux:** CPU, GPU (NVIDIA and AMD), memory, network, disks, batteries.
-- **Installer and tests:** the interactive installer works, and 47 unit tests pass on Linux.
+- **Installer and tests:** the interactive installer works, 58 unit tests pass on Linux, and `agent-status doctor` reports hooks that are missing or older than the registry.
 
 Built from documentation but **not yet run against the real thing**:
 
@@ -59,7 +59,6 @@ Built from documentation but **not yet run against the real thing**:
 
 ## Known issues
 
-- **Hooks need a reinstall to update:** after the hook list changes in `agents.py`, existing users must re-run `agent-status install` (the PermissionRequest hook was added this way). There is no "hooks are out of date" warning; T03 should add one.
 - **Process-name collisions:** process-only agents with generic command names (`pi`, `amp`, `grok`) can match unrelated programs.
 - **No history without Omarchy:** the 7-day chart and plan limits other than Codex come only from Omarchy's files, so the panel is empty on other distros until T11.
 - **Approximate tokens/sec:** tok/s includes time to first token. Claude's start time is the preceding `user` line, so a slow tool result that lands right before a response can skew it.

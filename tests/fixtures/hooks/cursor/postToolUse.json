@@ -1,0 +1,21 @@
+{
+  "conversation_id": "d2b1ef00-0000-4000-8000-000000000003",
+  "generation_id": "gen-003",
+  "model": "claude-sonnet-4",
+  "model_id": "claude-sonnet-4",
+  "hook_event_name": "postToolUse",
+  "cursor_version": "1.7.2",
+  "workspace_roots": [
+    "/Users/me/src/agent-status"
+  ],
+  "user_email": "me@example.com",
+  "transcript_path": "/Users/me/.cursor/projects/Users-me-src-agent-status/agent-transcripts/d2b1ef00-0000-4000-8000-000000000003.jsonl",
+  "tool_name": "Shell",
+  "tool_use_id": "toolu_001",
+  "tool_input": {
+    "command": "python -m unittest discover -s tests"
+  },
+  "tool_output": "{\"exitCode\":0,\"stdout\":\"OK\"}",
+  "duration": 1200,
+  "cwd": "/Users/me/src/agent-status"
+}
