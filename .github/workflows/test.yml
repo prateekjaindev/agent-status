@@ -23,7 +23,25 @@ jobs:
       - name: smoke test the server
         run: |
           pip install .
-          AGENT_STATUS_PORT=18787 agent-status serve &
-          sleep 3
-          curl -sf http://127.0.0.1:18787/ > /dev/null
-          curl -sf "http://127.0.0.1:18787/status?k=$(cat ~/.local/state/agent-status/token)" | python -c "import json,sys; d=json.load(sys.stdin); assert 'system' in d and 'agents' in d"
+          # faulthandler gives a thread dump when the server does not answer (SIGUSR1 below).
+          AGENT_STATUS_PORT=18787 python -c 'import faulthandler, signal; faulthandler.register(signal.SIGUSR1); from agent_status.server import serve; serve()' > server.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          up=
+          for _ in $(seq 1 40); do
+            if curl -sf --max-time 1 http://127.0.0.1:18787/ > /dev/null; then up=1; break; fi
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 0.5
+          done
+          if [ -z "$up" ]; then
+            echo "--- the dashboard did not answer; server log:"
+            cat server.log
+            echo "--- sockets on 18787:"
+            lsof -nP -iTCP:18787 || true
+            kill -USR1 "$pid" 2>/dev/null || true
+            sleep 2
+            echo "--- server stacks after SIGUSR1:"
+            cat server.log
+            exit 1
+          fi
+          curl -sf --max-time 10 "http://127.0.0.1:18787/status?k=$(cat ~/.local/state/agent-status/token)" | python -c "import json,sys; d=json.load(sys.stdin); assert 'system' in d and 'agents' in d"
