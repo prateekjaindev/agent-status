@@ -43,6 +43,46 @@ def table(selected):
     print()
 
 
+def doctor(agents=None, selected=None, exe=None, out=print):
+    """Report whether every selected agent still has the hook set this version writes.
+    Returns 1 when a config is stale (or hooks were never installed), 0 when everything matches."""
+    agents = AGENTS if agents is None else agents
+    selected = enabled_agents() if selected is None else selected
+    exe = command() if exe is None else exe
+    if selected is None:
+        out("  ! hooks are not installed yet")
+        out(f"    run: {exe} install")
+        return 1
+    if not selected:
+        out("  – no agents are selected")
+        out(f"    run: {exe} install")
+        return 0
+    stale = []
+    out("")
+    for a in agents:
+        if a.key not in selected:
+            continue
+        if a.how != "hooks":
+            out(f"  ✓ {a.name:<20} {HOW[a.how]} (no hooks to check)")
+            continue
+        try:
+            missing = a.stale(exe)
+        except SystemExit as e:
+            stale.append(a.key)
+            out(f"  ! {a.name:<20} {e}")  # load_json already names the broken file
+            continue
+        if missing:
+            stale.append(a.key)
+            out(f"  ! {a.name:<20} stale hooks: {', '.join(missing)}")
+        else:
+            out(f"  ✓ {a.name:<20} hooks up to date")
+    out("")
+    if stale:
+        out(f"  run: {exe} install --agents {','.join(sorted(selected))}")
+        return 1
+    return 0
+
+
 def choose(preselected):
     """Interactive toggle list. Returns the chosen agent keys."""
     selected = set(preselected)

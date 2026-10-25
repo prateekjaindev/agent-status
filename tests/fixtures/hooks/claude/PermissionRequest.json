@@ -1,0 +1,11 @@
+{
+  "session_id": "c1a0de00-0000-4000-8000-000000000005",
+  "transcript_path": "/Users/me/.claude/projects/-Users-me-src-agent-status/c1a0de00-0000-4000-8000-000000000005.jsonl",
+  "cwd": "/Users/me/src/agent-status",
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "rm -rf build",
+    "description": "remove build artifacts"
+  }
+}

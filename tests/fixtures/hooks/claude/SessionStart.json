@@ -1,0 +1,7 @@
+{
+  "session_id": "c1a0de00-0000-4000-8000-000000000001",
+  "transcript_path": "/Users/me/.claude/projects/-Users-me-src-agent-status/c1a0de00-0000-4000-8000-000000000001.jsonl",
+  "cwd": "/Users/me/src/agent-status",
+  "hook_event_name": "SessionStart",
+  "source": "startup"
+}

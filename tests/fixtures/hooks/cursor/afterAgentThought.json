@@ -1,0 +1,14 @@
+{
+  "conversation_id": "d2b1ef00-0000-4000-8000-000000000002",
+  "generation_id": "gen-002",
+  "model": "claude-sonnet-4",
+  "model_id": "claude-sonnet-4",
+  "hook_event_name": "afterAgentThought",
+  "cursor_version": "1.7.2",
+  "workspace_roots": [
+    "/Users/me/src/agent-status"
+  ],
+  "user_email": "me@example.com",
+  "transcript_path": "/Users/me/.cursor/projects/Users-me-src-agent-status/agent-transcripts/d2b1ef00-0000-4000-8000-000000000002.jsonl",
+  "text": "I'll reproduce the failure before changing the test."
+}

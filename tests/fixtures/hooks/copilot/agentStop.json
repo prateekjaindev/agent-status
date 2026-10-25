@@ -1,0 +1,8 @@
+{
+  "sessionId": "f4d3ab00-0000-4000-8000-000000000007",
+  "timestamp": 1761386400007,
+  "cwd": "/Users/me/src/agent-status",
+  "transcriptPath": "/Users/me/.copilot/session-state/f4d3ab00-0000-4000-8000-000000000007.jsonl",
+  "stopReason": "end_turn",
+  "stop_hook_active": false
+}

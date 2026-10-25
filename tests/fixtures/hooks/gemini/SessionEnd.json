@@ -1,0 +1,8 @@
+{
+  "session_id": "e3c2fa00-0000-4000-8000-000000000007",
+  "transcript_path": "/Users/me/.gemini/tmp/agent-status/chats/session-2026-10-25-07.json",
+  "cwd": "/Users/me/src/agent-status",
+  "hook_event_name": "SessionEnd",
+  "timestamp": "2026-10-25T10:00:00.000Z",
+  "reason": "exit"
+}
