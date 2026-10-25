@@ -48,7 +48,7 @@ CARD = {
     "id": text, "kind": text, "name": text, "state": text, "detail": text, "since": number,
     "git": Nullable(GIT),
     "started": Opt(Nullable(number)), "model": Opt(text), "prompts": Opt(Nullable(integer)),
-    "tools": Opt(Nullable(integer)), "cpu": Opt(Nullable(number)), "rss": Opt(Nullable(integer)),
+    "tools": Opt(Nullable(integer)),
     "tps": Opt(Nullable(number)), "ctx": Opt(Nullable(number)), "ctx_tokens": Opt(Nullable(integer)),
     "cost": Opt(Nullable(number)), "estimated": Opt(boolean),
     "ask": Opt(text), "ask_until": Opt(number), "ask_text": Opt(text),
@@ -56,18 +56,6 @@ CARD = {
 }
 LIMIT = {"name": text, "tier": Opt(text), "updated": Opt(text),
          "limits": [{"label": text, "pct": number, "resets": Opt(Nullable(text))}]}
-SYSTEM = {
-    "host": text, "uptime": number,
-    "cpu": {"pct": number, "cores": [integer], "load": [number, number, number], "temp": Nullable(number)},
-    "mem": {"total": integer, "used": integer, "pct": number, "swap_total": integer, "swap_used": integer},
-    "gpus": [{"name": text, "util": Nullable(number), "mem_used": integer, "mem_total": integer,
-              "temp": Nullable(number), "power": Nullable(number), "power_limit": Nullable(number)}],
-    "net": {"rx": number, "tx": number},
-    "disks": [{"mount": text, "total": integer, "used": integer}],
-    "nvme_temp": Nullable(number),
-    "devices": [{"name": text, "pct": number, "status": text}],
-    "hist": {"cpu": [number], "gpu": [number], "mem": [number], "rx": [number], "tx": [number]},
-}
 ROW = {"agent": text, "model": text, "input": integer, "output": integer, "cache_read": integer,
        "cache_write": integer, "cost": Nullable(number), "estimated": boolean, "tps": Nullable(number),
        "total": integer}
@@ -76,7 +64,6 @@ STATUS = {
     "agents": [CARD],
     "limits": [LIMIT],
     "week": [{"date": text, "agents": Map(integer)}],
-    "system": SYSTEM,
     "today": {"cost": number, "tokens": integer, "output": integer, "burn": number,
               "hours": [[number, number]], "models": [ROW]},
 }
@@ -125,7 +112,7 @@ class FakeProcs:
 
     def scanned(self, now, skip, enabled):
         return [dict(id="pid-9001", kind="Aider", name="app", cwd="", state="working", detail="busy",
-                     since=now - 60, cpu=3.4, rss=2048, guessed=True)]
+                     since=now - 60, guessed=True)]
 
 
 class FakeClaude:
@@ -168,19 +155,6 @@ class FakeOpenCode:
         return [card], [row], [[100, 0.05] for _ in range(24)], 0.05
 
 
-class FakeSystem:
-    def sample(self, now):
-        return dict(
-            host="myhost", uptime=1234.5,
-            cpu=dict(pct=12.5, cores=[10, 15], load=[0.5, 0.4, 0.3], temp=45.0),
-            mem=dict(total=16 * 2**30, used=8 * 2**30, pct=50.0, swap_total=2 * 2**30, swap_used=2**29),
-            gpus=[dict(name="RTX 4090", util=30.0, mem_used=2**30, mem_total=24 * 2**30, temp=60.0,
-                       power=120.0, power_limit=450.0)],
-            net=dict(rx=1234.0, tx=5678.0), disks=[dict(mount="/", total=1_000_000, used=400_000)],
-            nvme_temp=None, devices=[dict(name="Battery", pct=76.0, status="discharging")],
-            hist={k: [1.0, 2.0] for k in ("cpu", "gpu", "mem", "rx", "tx")})
-
-
 class Contract(unittest.TestCase):
     def snapshot(self):
         now = time.time()
@@ -208,27 +182,27 @@ class Contract(unittest.TestCase):
                                   limits=[dict(label="5-hour", pct=0.4, resets=None)])],
                             [dict(date="2026-10-24", agents={"Claude": 1234})], [om_row])):
                 c = Collector()
-                c.procs, c.system = FakeProcs(), FakeSystem()
+                c.procs = FakeProcs()
                 c.claude, c.codex, c.oc = FakeClaude(), FakeCodex(), FakeOpenCode()
                 return json.loads(json.dumps(c.tick()))
 
     def test_snapshot_matches_the_documented_contract(self):
         snap = self.snapshot()
-        self.assertEqual(snap["schema"], 1)
+        self.assertEqual(snap["schema"], 2)
         self.assertEqual(len(snap["today"]["hours"]), 24)
         check(snap, STATUS, "status")
 
     def test_demo_snapshot_matches_the_contract(self):
         snap = json.loads(json.dumps(demo.snapshot(now=1_800_000_000)))
-        self.assertEqual(snap["schema"], 1)
+        self.assertEqual(snap["schema"], 2)
         self.assertEqual(len(snap["agents"]), 5)
         self.assertEqual(len(snap["today"]["hours"]), 24)
         check(snap, STATUS, "demo")
 
     def test_demo_moves_between_requests(self):
         a = demo.snapshot(now=1_800_000_000)
-        b = demo.snapshot(now=1_800_000_010)
-        self.assertNotEqual(a["system"]["hist"]["cpu"], b["system"]["hist"]["cpu"])
+        b = demo.snapshot(now=1_800_000_009)
+        self.assertNotEqual(a["agents"][0]["state"], b["agents"][0]["state"])
 
     def test_checker_catches_undocumented_and_missing_keys(self):
         snap = self.snapshot()
@@ -236,7 +210,7 @@ class Contract(unittest.TestCase):
         with self.assertRaises(AssertionError):
             check(snap, STATUS, "status")
         snap = self.snapshot()
-        del snap["system"]["host"]
+        del snap["agents"][0]["id"]
         with self.assertRaises(AssertionError):
             check(snap, STATUS, "status")
 

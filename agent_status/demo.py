@@ -9,10 +9,6 @@ def _iso(ts):
     return datetime.fromtimestamp(ts).astimezone().isoformat(timespec="seconds")
 
 
-def _wave(n, base, amp, period, phase=0.0, digits=1):
-    return [round(base + amp * math.sin(i / period + phase), digits) for i in range(n)]
-
-
 def _rows():
     rows = []
 
@@ -53,11 +49,11 @@ def snapshot(now=None):
     cards = [
         dict(id="demo-claude", kind="Claude Code", name="checkout", state="done" if claude_done else "working",
              detail="" if claude_done else "Bash: run tests", since=now - (12 if claude_done else 95),
-             started=now - 1420, model="claude-opus-5-5", prompts=3, tools=7, cpu=18.4, rss=412_000_000,
+             started=now - 1420, model="claude-opus-5-5", prompts=3, tools=7,
              tps=57.3, ctx=0.18, ctx_tokens=182_000, cost=1.42, estimated=True,
              git=dict(branch="feature/checkout", files=3, add=42, rem=7)),
         dict(id="demo-codex", kind="Codex CLI", name="api", state="waiting", detail="Approve Bash",
-             since=now - 35, started=now - 900, model="gpt-6-sol", prompts=2, tools=4, cpu=2.1, rss=198_000_000,
+             since=now - 35, started=now - 900, model="gpt-6-sol", prompts=2, tools=4,
              ctx=0.64, ctx_tokens=160_000, ask="demo-ask-codex", ask_until=now + 45,
              ask_text="Bash: git push --force-with-lease",
              git=dict(branch="main", files=1, add=6, rem=2)),
@@ -66,10 +62,10 @@ def snapshot(now=None):
              prompts=5, lines=[128, 24], git=dict(branch="fix/login", files=6, add=128, rem=24)),
         dict(id="demo-cursor", kind="Cursor CLI", name="mobile", state="done", detail="",
              since=now - 620, started=now - 2400, model="claude-sonnet-4-6", prompts=4, tools=12,
-             cpu=0.0, rss=156_000_000, git=dict(branch="release/2.1", files=0, add=0, rem=0)),
+             git=dict(branch="release/2.1", files=0, add=0, rem=0)),
         dict(id="pid-14207", kind="Aider", name="infra", state="working" if aider_busy else "idle",
-             detail="busy" if aider_busy else "", since=now - 30, cpu=4.2 if aider_busy else 0.4,
-             rss=98_000_000, guessed=True, git=dict(branch="main", files=2, add=9, rem=4)),
+             detail="busy" if aider_busy else "", since=now - 30,
+             guessed=True, git=dict(branch="main", files=2, add=9, rem=4)),
     ]
 
     limits = [
@@ -94,27 +90,8 @@ def snapshot(now=None):
                        tokens=sum(r["total"] for r in rows), output=sum(r["output"] for r in rows),
                        burn=0.42, hours=hours, models=rows)
 
-    cores = [int(18 + 12 * math.sin(phase + i / 3)) for i in range(16)]
-    system = dict(
-        host="studio", uptime=3 * 86400 + 7200,
-        cpu=dict(pct=round(22 + 8 * math.sin(phase), 1), cores=cores, load=[1.24, 0.98, 0.71], temp=52.0),
-        mem=dict(total=64 * 2**30, used=38 * 2**30, pct=59.4, swap_total=8 * 2**30, swap_used=512 * 2**20),
-        gpus=[dict(name="RTX 4090", util=round(30 + 10 * math.sin(phase / 2), 1), mem_used=6 * 2**30,
-                   mem_total=24 * 2**30, temp=63.0, power=141.0, power_limit=450.0)],
-        net=dict(rx=round(1_200_000 + 400_000 * math.sin(phase), 0),
-                 tx=round(180_000 + 60_000 * math.sin(phase + 1), 0)),
-        disks=[dict(mount="/", total=2 * 10**12, used=780 * 10**9)],
-        nvme_temp=44.0,
-        devices=[dict(name="Battery", pct=76.0, status="discharging"),
-                 dict(name="Magic Mouse", pct=61.0, status="discharging")],
-        hist=dict(
-            cpu=_wave(60, 22, 9, 5, phase), gpu=_wave(60, 30, 12, 7, phase / 2),
-            mem=_wave(60, 59, 1.5, 11, phase / 3), rx=_wave(60, 1_200_000, 300_000, 4, phase, 0),
-            tx=_wave(60, 180_000, 50_000, 5, phase, 0)),
-    )
-
-    return dict(schema=1, now=now, interval=2, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week,
-                system=system, today=today_usage)
+    return dict(schema=2, now=now, interval=2, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week,
+                today=today_usage)
 
 
 class Demo:

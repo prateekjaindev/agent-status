@@ -20,7 +20,6 @@ const ICON = {
   chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
   tool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>',
   branch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-6 4-11 8"/></svg>',
-  chip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17.5v.01"/></svg>',
   soundOn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
@@ -31,12 +30,6 @@ const ICON = {
 // ---------- formatting ----------
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
 const num = (n) => (n >= 1e9 ? (n / 1e9).toFixed(1) + "B" : n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(Math.round(n || 0)));
-const bytes = (b) => {
-  const u = ["B", "KB", "MB", "GB", "TB"];
-  let i = 0;
-  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-  return (b >= 100 || i === 0 ? Math.round(b) : b.toFixed(1)) + " " + u[i];
-};
 const usd = (c, est) => (c == null ? "—" : (est ? "≈" : "") + "$" + (c >= 100 ? Math.round(c) : c >= 10 ? c.toFixed(1) : c.toFixed(2)));
 const ago = (s) => {
   s = Math.max(0, s | 0);
@@ -46,32 +39,6 @@ const ago = (s) => {
   return ((s / 86400) | 0) + "d " + (((s % 86400) / 3600) | 0) + "h";
 };
 const shortModel = (m) => String(m || "").replace(/^claude-/, "").replace(/\[.*\]$/, "");
-const tempClass = (t) => (t >= 85 ? "temp hot" : t >= 70 ? "temp warm" : "temp");
-const temp = (t) => (t == null ? "" : `<span class="${tempClass(t)}">${Math.round(t)}°C</span>`);
-
-// ---------- tiny charts ----------
-function gauge(pct, color) {
-  const r = 31, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct || 0));
-  return `<div class="gauge" style="--g:${color}"><svg viewBox="0 0 74 74">
-    <circle cx="37" cy="37" r="${r}" fill="none" stroke-width="7" class="track"/>
-    <circle cx="37" cy="37" r="${r}" fill="none" stroke-width="7" stroke-linecap="round" class="val"
-      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${(c * (1 - p / 100)).toFixed(1)}"/></svg>
-    <span>${Math.round(p)}<small>%</small></span></div>`;
-}
-
-function spark(series, max) {
-  // series: [[values, color], ...] drawn on a shared scale
-  const w = 200, h = 34, all = series.flatMap(([v]) => v);
-  if (all.length < 2) return '<svg class="spark"></svg>';
-  max = max || Math.max(...all, 1);
-  const paths = series.map(([vals, color]) => {
-    if (vals.length < 2) return "";
-    const pts = vals.map((v, i) => [(i / (vals.length - 1)) * w, h - 1 - (Math.min(v, max) / max) * (h - 3)]);
-    const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
-    return `<g style="--g:${color}"><path class="area" d="${line}L${w} ${h}L0 ${h}Z"/><path class="line" d="${line}"/></g>`;
-  });
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${paths.join("")}</svg>`;
-}
 
 const bar = (pct, color) => `<div class="bar" style="--b:${color}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`;
 const setHTML = (el, html) => { if (el._h !== html) { el.innerHTML = html; el._h = html; } };
@@ -164,8 +131,7 @@ function cardHTML(a, now) {
   const left = g && g.branch
     ? `<span class="branch">${ICON.branch}${esc(g.branch)}${lines && (lines[0] || lines[1]) ? ` <span class="add">+${num(lines[0])}</span> <span class="rem">−${num(lines[1])}</span>` : ""}${g.files ? ` · ${g.files} files` : ""}</span>`
     : "<span></span>";
-  const right = a.cpu != null ? `<span>${ICON.chip}${Math.round(a.cpu)}% · ${bytes(a.rss)}</span>` : "";
-  const foot = g && g.branch || right ? `<div class="c-foot">${left}${right}</div>` : "";
+  const foot = g && g.branch ? `<div class="c-foot">${left}</div>` : "";
 
   return `<div class="c-top"><span class="c-name">${esc(a.name)}</span><span class="chip">${LABEL[a.state]}</span></div>
     <div class="c-sub"><span class="tag" style="--a:${agentColor(a.kind)}">${esc(a.kind)}</span>${a.model ? `<span class="model">${esc(shortModel(a.model))}</span>` : ""}</div>
@@ -287,40 +253,6 @@ function renderWeek(d) {
   setHTML($("legend"), agents.map((a) => `<span><i style="--a:${agentColor(a)}"></i>${esc(a)}</span>`).join(""));
 }
 
-// ---------- system ----------
-function renderSystem(d) {
-  const s = d.system, h = s.hist, tiles = [];
-  const coreMax = Math.max(...s.cpu.cores, 1) > 0 ? 100 : 1;
-  tiles.push(`<div class="tile"><div class="tile-h"><h2>CPU</h2>${temp(s.cpu.temp)}</div>${gauge(s.cpu.pct, "var(--blue)")}
-    <div class="cores">${s.cpu.cores.map((c) => `<i style="height:${Math.max(6, (c / coreMax) * 100)}%;opacity:${0.35 + c / 160}"></i>`).join("")}</div>
-    <div class="kv"><span>load</span><b>${s.cpu.load.map((l) => l.toFixed(1)).join(" ")}</b></div>${spark([[h.cpu, "var(--blue)"]], 100)}</div>`);
-
-  s.gpus.slice(0, 1).forEach((g) => tiles.push(`<div class="tile"><div class="tile-h"><h2>${esc(g.name)}</h2>${temp(g.temp)}</div>${gauge(g.util, "var(--green)")}
-    <div class="kv"><span>VRAM</span><b>${bytes(g.mem_used)} / ${bytes(g.mem_total)}</b></div>
-    ${g.power != null ? `<div class="kv"><span>power</span><b>${Math.round(g.power)} W${g.power_limit ? " / " + Math.round(g.power_limit) : ""}</b></div>` : ""}
-    ${s.gpus.slice(1).map((o) => `<div class="kv"><span>${esc(o.name)}</span><b>${Math.round(o.util || 0)}%</b></div>`).join("")}
-    ${spark([[h.gpu, "var(--green)"]], 100)}</div>`));
-
-  const m = s.mem;
-  tiles.push(`<div class="tile"><div class="tile-h"><h2>Memory</h2></div>${gauge(m.pct, "var(--violet)")}
-    <div class="kv"><span>used</span><b>${bytes(m.used)} / ${bytes(m.total)}</b></div>
-    ${m.swap_total ? `<div class="kv"><span>swap</span><b>${bytes(m.swap_used)}</b></div>` : ""}${spark([[h.mem, "var(--violet)"]], 100)}</div>`);
-
-  tiles.push(`<div class="tile"><div class="tile-h"><h2>Network</h2></div>
-    <div class="rate" style="--g:var(--cyan)"><em>↓</em>${bytes(s.net.rx)}<small>/s</small></div>
-    <div class="rate" style="--g:var(--amber)"><em>↑</em>${bytes(s.net.tx)}<small>/s</small></div>
-    ${spark([[h.rx, "var(--cyan)"], [h.tx, "var(--amber)"]])}</div>`);
-
-  const disks = s.disks.map((k) => `<div class="kv"><span>${esc(k.mount === "/" ? "disk" : k.mount)}</span><b>${bytes(k.used)} / ${bytes(k.total)}</b></div>${bar((k.used / k.total) * 100, "var(--cyan)")}`).join("");
-  const devices = s.devices.map((v) => `<div class="dev"><span>${esc(v.name)}</span>${bar(v.pct, v.pct <= 20 ? "var(--red)" : "var(--green)")}<b>${Math.round(v.pct)}%</b></div>`).join("");
-  tiles.push(`<div class="tile"><div class="tile-h"><h2>Storage</h2>${temp(s.nvme_temp)}</div>${disks}
-    ${devices ? `<h2 style="margin-top:4px">Devices</h2>${devices}` : ""}</div>`);
-
-  setHTML($("system"), tiles.join(""));
-  $("uptime").textContent = s.uptime ? "up " + ago(s.uptime) : "";
-  $("host").textContent = s.host;
-}
-
 // ---------- loop ----------
 let failures = 0;
 async function tick() {
@@ -334,15 +266,17 @@ async function tick() {
     if (r.status === 403) throw new Error("bad key");
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
-    renderAgents(d); renderToday(d); renderLimits(d); renderWeek(d); renderSystem(d);
+    renderAgents(d); renderToday(d); renderLimits(d); renderWeek(d);
     failures = 0;
     $("offline").hidden = true;
     $("live").className = "live ok";
+    $("live-text").textContent = "live";
   } catch (e) {
     if (++failures > 1) {
       $("offline").hidden = false;
       $("offline").textContent = String(e.message) === "bad key" ? "Access key rejected: open the link printed by `agent-status url`" : "Can't reach the computer — retrying…";
       $("live").className = "live bad";
+      $("live-text").textContent = "offline";
     }
   }
 }

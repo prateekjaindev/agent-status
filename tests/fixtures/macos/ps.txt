@@ -1,8 +1,8 @@
-    1     0  13296   4:12.88 /sbin/launchd
-  501     1  52144   0:03.15 /usr/sbin/cfprefsd agent
-  812     1 182340  12:34.56 /Applications/Visual Studio Code.app/Contents/MacOS/Electron
- 4321   812   5920   0:00.21 -zsh
- 4400  4321 412880   3:05.40 claude
- 4410  4400  98304   0:01.02 /opt/homebrew/bin/node /Users/me/.npm/lib/node_modules/@google/gemini-cli/dist/index.js
- 4500  4321  77824 1-02:03:04.50 /opt/homebrew/bin/codex
- 4600     1      0   0:00.00 (zombie)
+    1     0   4:12.88 /sbin/launchd
+  501     1   0:03.15 /usr/sbin/cfprefsd agent
+  812     1  12:34.56 /Applications/Visual Studio Code.app/Contents/MacOS/Electron
+ 4321   812   0:00.21 -zsh
+ 4400  4321   3:05.40 claude
+ 4410  4400   0:01.02 /opt/homebrew/bin/node /Users/me/.npm/lib/node_modules/@google/gemini-cli/dist/index.js
+ 4500  4321 1-02:03:04.50 /opt/homebrew/bin/codex
+ 4600     1   0:00.00 (zombie)
