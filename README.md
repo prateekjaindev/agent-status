@@ -11,6 +11,14 @@ Glance over and see which agents are working, which one is waiting for your appr
 - **Machine performance**: CPU (per core and temperature), GPU (NVIDIA and AMD: load, VRAM, power, temperature), memory, network, disks, and device batteries (mouse, keyboard, headset). On macOS: CPU per core, memory, network, disks and the laptop battery
 - **No dependencies**: Python standard library only, one background service, and a web page that any browser on your network can open
 
+![agent-status with five fictional agent sessions](docs/screenshot.png)
+
+<p align="center">
+  <img src="docs/screenshot-phone.png" alt="agent-status on a phone, with a waiting agent and Allow/Deny buttons" width="330">
+</p>
+
+<sub>Screenshots use `agent-status serve --demo`: fictional agents, no data from a real machine.</sub>
+
 ## Supported agents
 
 | Agent | How it's tracked | What you get |
@@ -115,6 +123,7 @@ transcripts, opencode db, /proc, /sys, nvidia-smi ──▶ agent-status serve (
 git clone https://github.com/prateekjaindev/agent-status && cd agent-status
 uv tool install --editable .        # or: python -m agent_status serve
 python -m unittest discover -s tests
+python -m agent_status serve --demo # fictional sessions, for screenshots or a UI check
 ```
 
 **Adding an agent** is usually one entry in `agent_status/agents.py`: give it a key, the commands and config folders that show it's installed, and either a hook file format (`nested`, `flat` or `own_file`) or just process names. If its hook payload differs from Claude Code's, add an event map in `agent_status/hooks.py`.
