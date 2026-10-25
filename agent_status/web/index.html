@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agents">
+<meta name="theme-color" content="#06080b">
+<title>Agent Status</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="clock"><div id="time">--:--</div><div id="date"></div></div>
+  <div id="pills" class="pills"></div>
+  <div class="top-right">
+    <button id="wake" class="iconbtn" type="button" aria-label="Keep screen on" hidden></button>
+    <button id="full" class="iconbtn" type="button" aria-label="Full screen" hidden></button>
+    <button id="sound" class="iconbtn" type="button" aria-label="Sound alerts"></button>
+    <div id="live" class="live"><i></i><span id="host">connecting…</span></div>
+  </div>
+</header>
+
+<div id="alert" class="alert" hidden></div>
+
+<div class="layout">
+  <main class="col-main">
+    <section class="block">
+      <div class="block-h"><h2>Agents</h2><span id="agent-count" class="muted"></span></div>
+      <div id="cards" class="cards"></div>
+      <div id="empty" class="empty" hidden>
+        <div class="empty-dot"></div>
+        <p>No agents running</p>
+        <span>Start Claude Code, Cursor or opencode and they'll show up here.</span>
+      </div>
+    </section>
+    <section class="block">
+      <div class="block-h"><h2>System</h2><span id="uptime" class="muted"></span></div>
+      <div id="system" class="system"></div>
+    </section>
+  </main>
+
+  <aside class="col-side">
+    <section class="panel">
+      <div class="panel-h"><h2>Today</h2><div id="today-cost" class="big-num"></div></div>
+      <div id="today-sub" class="sub"></div>
+      <div id="hours" class="hours"></div>
+      <div class="hours-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+    </section>
+    <section class="panel">
+      <div class="panel-h"><h2>Models</h2><span class="muted small">today</span></div>
+      <table class="models">
+        <thead><tr><th>Model</th><th>Out</th><th>Total</th><th>Cost</th><th>tok/s</th></tr></thead>
+        <tbody id="models"></tbody>
+      </table>
+      <p class="note">≈ is the API-price equivalent of Claude usage, not what a subscription charges. tok/s includes time to first token.</p>
+    </section>
+    <section class="panel" id="limits-panel">
+      <div class="panel-h"><h2>Plan limits</h2></div>
+      <div id="limits"></div>
+    </section>
+    <section class="panel" id="week-panel">
+      <div class="panel-h"><h2>Last 7 days</h2><span class="muted small">tokens</span></div>
+      <div id="week" class="week"></div>
+      <div id="legend" class="legend"></div>
+    </section>
+  </aside>
+</div>
+
+<div id="offline" class="offline" hidden>Can't reach the computer — retrying…</div>
+<script src="app.js"></script>
+</body>
+</html>

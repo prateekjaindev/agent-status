@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-status"
+version = "0.1.0"
+description = "A live dashboard of your AI coding agents (Claude Code, Codex, Cursor, Gemini, Copilot, opencode, ...) for a tablet or phone on your desk"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Prateek Jain" }]
+keywords = ["claude-code", "codex", "cursor", "ai-agents", "dashboard", "ipad", "android", "monitoring"]
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+    "Topic :: System :: Monitoring",
+]
+dependencies = []
+
+[project.scripts]
+agent-status = "agent_status.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/prateekjaindev/agent-status"
+Issues = "https://github.com/prateekjaindev/agent-status/issues"
+
+[tool.setuptools.packages.find]
+include = ["agent_status*"]
+
+[tool.setuptools.package-data]
+agent_status = ["web/*"]
