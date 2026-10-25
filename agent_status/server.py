@@ -1,5 +1,5 @@
 """HTTP server: the dashboard page is public, the /status data and /decide need the access key."""
-import json, os, re, secrets, socket, time
+import json, os, re, secrets, socket, socketserver, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -28,10 +28,24 @@ def lan_ip():
         return s.getsockname()[0]
 
 
+def hostname():
+    """The host's name without a `.local` suffix; `urls()` adds it back exactly once (macOS already has it)."""
+    name = socket.gethostname()
+    return name[:-len(".local")] if name.lower().endswith(".local") else name
+
+
 def urls():
     key = token()
-    return [(f"http://{socket.gethostname()}.local:{PORT}/?k={key}", "stable name (mDNS/Avahi)"),
+    return [(f"http://{hostname()}.local:{PORT}/?k={key}", "stable name (mDNS/Avahi)"),
             (f"http://{lan_ip()}:{PORT}/?k={key}", "current IP")]
+
+
+class Server(ThreadingHTTPServer):
+    def server_bind(self):
+        # http.server's server_bind calls getfqdn("0.0.0.0"), a reverse lookup that blocks for over a minute
+        # on macOS CI. The socket must be accepting while curl waits, so skip the lookup.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
 
 def decide(body, now=None):
@@ -114,4 +128,4 @@ def serve():
     collector.start()
     for url, what in urls():
         print(f"agent-status: {url}  ({what})", flush=True)
-    ThreadingHTTPServer((HOST, PORT), handler(key, collector)).serve_forever()
+    Server((HOST, PORT), handler(key, collector)).serve_forever()

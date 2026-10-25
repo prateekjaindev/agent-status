@@ -123,17 +123,7 @@ The frontend is plain HTML, CSS and JavaScript in `agent_status/web/`, with no b
 
 ## Roadmap
 
-Ideas, roughly in order of value. Contributions welcome.
-
-- **Windows hosts**: process and system stats come from `/proc` and `/sys` on Linux and built-in commands on macOS; Windows has neither yet (agents and usage already work there, but the system panel is empty)
-- **macOS extras**: CPU/NVMe temperatures and GPU load need root (`powermetrics`), and Bluetooth device batteries need `ioreg`, so the macOS system panel shows neither yet
-- **Usage history**: keep daily totals in SQLite for weekly and monthly charts, budgets and "cost per project", without depending on Omarchy
-- **Push notifications**: ntfy or Pushover alerts when an agent needs you and the tablet is out of sight
-- **More data sources**: Gemini CLI and Copilot CLI token logs, Cursor usage via its API, opencode permission prompts via a plugin, Aider's chat history
-- **Agents on other machines**: let a remote dev box or CI runner report to the same dashboard
-- **Custom displays**: an ESP32 screen client, a Home Assistant integration, a menu-bar app, a `--tui` mode for a spare terminal
-- **Themes and layouts**: a light theme, a big-text "wall" mode, layouts you can choose per device
-- **Packaging**: PyPI release, AUR and Homebrew packages, a one-line install script
+Planned work (macOS extras, Windows, usage history and budgets, push notifications, more agents' token data, remote machines, themes, packaging) is tracked task by task in [`docs/PLAN.md`](docs/PLAN.md), each with what "done" means. Pick one and open a PR; [`AGENTS.md`](AGENTS.md) has the conventions.
 
 ## License
 
