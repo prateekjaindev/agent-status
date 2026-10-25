@@ -14,7 +14,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 
 | ID | Task | Phase | Size | Status | Depends on |
 |---|---|---|---|---|---|
-| T01 | Fix the macOS smoke test and the `.local.local` link | 0 Stabilize | S | todo | |
+| T01 | Fix the macOS smoke test and the `.local.local` link | 0 Stabilize | S | done | |
 | T02 | Pin CI actions and add Dependabot | 0 Stabilize | S | todo | |
 | T03 | Hook test harness: subprocess runs, timing, garbage input | 0 Stabilize | M | todo | |
 | T04 | Clean up stale state files | 0 Stabilize | S | todo | |
@@ -54,13 +54,11 @@ Built from documentation but **not yet run against the real thing**:
 
 - Codex, Gemini CLI and Copilot CLI hooks (event names and payloads come from their docs; see the links in T05).
 - Allow/Deny on Codex, and Allow/Deny tapped on an actual iPad.
-- macOS host support. Its fixtures are hand-written, and CI shows the unit tests pass but the server smoke test fails (T01).
+- macOS host support. Its fixtures are hand-written, but the unit tests and the server smoke test pass in CI; it still has not run on real hardware (T05).
 - Android: the page has a manifest and a phone layout, checked only in emulated viewports.
 
 ## Known issues
 
-- **macOS server smoke test fails in CI** (`curl` exit 28 after about 80 s): see T01.
-- **Doubled `.local` suffix:** `server.urls()` builds `{gethostname()}.local`, but macOS hostnames already end in `.local`, so it prints `host.local.local`.
 - **Hooks need a reinstall to update:** after the hook list changes in `agents.py`, existing users must re-run `agent-status install` (the PermissionRequest hook was added this way). There is no "hooks are out of date" warning; T03 should add one.
 - **Process-name collisions:** process-only agents with generic command names (`pi`, `amp`, `grok`) can match unrelated programs.
 - **No history without Omarchy:** the 7-day chart and plan limits other than Codex come only from Omarchy's files, so the panel is empty on other distros until T11.
