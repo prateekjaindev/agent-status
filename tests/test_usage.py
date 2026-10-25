@@ -1,14 +1,16 @@
-import unittest
+import json, tempfile, unittest
+from pathlib import Path
 
 from agent_status.procs import agent_key
-from agent_status.usage import PRICES, claude_cost, context_window, finish_rows, new_row, price_for, tps
+from agent_status.usage import (PRICES, claude_cost, codex_cost, context_window, finish_rows, load_prices,
+                                new_row, price_for, tps)
 
 
 class Pricing(unittest.TestCase):
     def test_longest_prefix(self):
         self.assertEqual(price_for("claude-opus-5-5[1m]"), PRICES["claude-opus-5-5"])
         self.assertEqual(price_for("claude-opus-5"), PRICES["claude-opus-5"])
-        self.assertIsNone(price_for("gpt-6"))
+        self.assertIsNone(price_for("unknown-model"))
 
     def test_cost_includes_cache_writes_by_ttl(self):
         u = {"input_tokens": 1_000_000, "output_tokens": 1_000_000, "cache_read_input_tokens": 1_000_000,
@@ -16,6 +18,22 @@ class Pricing(unittest.TestCase):
         # $4 in + $20 out + $0.20 cache read + 1M x 5-min write at 1.25x + 1M x 1-hour write at 2x
         self.assertAlmostEqual(claude_cost("claude-opus-5-5", u), 4 + 20 + 0.2 + 5 + 8)
         self.assertIsNone(claude_cost("unknown", u))
+
+    def test_codex_counts_cached_input_inside_input(self):
+        d = {"input_tokens": 1_000_000, "cached_input_tokens": 600_000, "output_tokens": 100_000}
+        self.assertAlmostEqual(codex_cost("gpt-6-sol", d), (400_000 * 2 + 100_000 * 10 + 600_000 * 0.10) / 1e6)
+        self.assertIsNone(codex_cost("unknown-model", d))
+
+    def test_override_changes_one_model_and_keeps_the_rest(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "prices.json"
+            path.write_text(json.dumps({"as_of": "2030-01-01", "models": {
+                "claude-opus-5-5": {"in": 100, "out": 100, "cache_read": 1}}}))
+            prices = load_prices(path)
+            self.assertEqual(prices["as_of"], "2030-01-01")
+            self.assertEqual(price_for("claude-sonnet-4-6", prices["models"])["in"], 3)
+            u = {"input_tokens": 1_000_000, "output_tokens": 0}
+            self.assertAlmostEqual(claude_cost("claude-opus-5-5", u, prices["models"]), 100)
 
     def test_context_window(self):
         self.assertEqual(context_window("claude-opus-5-5"), 1_000_000)

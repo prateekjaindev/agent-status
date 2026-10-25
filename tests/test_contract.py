@@ -72,7 +72,7 @@ ROW = {"agent": text, "model": text, "input": integer, "output": integer, "cache
        "cache_write": integer, "cost": Nullable(number), "estimated": boolean, "tps": Nullable(number),
        "total": integer}
 STATUS = {
-    "schema": integer, "now": number, "interval": number,
+    "schema": integer, "now": number, "interval": number, "prices_as_of": text,
     "agents": [CARD],
     "limits": [LIMIT],
     "week": [{"date": text, "agents": Map(integer)}],
@@ -148,10 +148,10 @@ class FakeCodex:
     def session(self, path):
         return dict(model="gpt-6-sol", ctx_tokens=5000, ctx=0.02)
 
-    def usage(self, since):
+    def usage(self, since, now):
         row = new_row("Codex", "gpt-6-sol")
-        row.update(input=100, output=20, cache_read=50, priced=False)
-        return [row], [[170, 0] for _ in range(24)]
+        row.update(input=100, output=20, cache_read=50, cost=0.01, estimated=True)
+        return [row], [[170, 0.01] for _ in range(24)], 0.01
 
     def limits(self, now):
         return [dict(name="Codex", tier="Plus",

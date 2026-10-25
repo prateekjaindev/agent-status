@@ -115,7 +115,7 @@ transcripts, opencode db, /proc, /sys, nvidia-smi ──▶ agent-status serve (
 
 - **Hooks** run on every event, so they're tiny: parse the event, update one JSON file, exit. They never fail the agent; the only one that waits is a permission request while a dashboard is open (at most 60 seconds, polling `decisions/` for a tap).
 - **Readers** parse transcripts and databases incrementally: only what was appended since the last refresh.
-- **Costs**: Claude costs are what the same tokens would cost on the API (subscriptions bill differently, so they're marked `≈`); opencode costs are what opencode itself recorded. tok/s includes time to first token.
+- **Costs**: Claude and Codex costs are what the same tokens would cost on the API (subscriptions bill differently, so they're marked `≈`); opencode costs are what opencode itself recorded. Prices live in `agent_status/prices.json`, dated in the Models panel; override a model in `~/.config/agent-status/prices.json`. tok/s includes time to first token.
 
 ## Development
 
