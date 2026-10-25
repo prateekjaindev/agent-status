@@ -1,5 +1,6 @@
-"""The dashboard links and the server's startup path (the macOS CI smoke-test hang)."""
-import unittest
+"""The dashboard links, the server's startup path (the macOS CI smoke-test hang) and the key/limits."""
+import tempfile, unittest
+from pathlib import Path
 from unittest import mock
 
 from agent_status import server
@@ -17,6 +18,32 @@ class Urls(unittest.TestCase):
             with self.subTest(host=host):
                 self.assertEqual(self.urls(host), [f"http://{name}.local:{server.PORT}/?k=k",
                                                    f"http://192.0.2.10:{server.PORT}/?k=k"])
+
+
+class Limits(unittest.TestCase):
+    def test_sliding_window_per_client(self):
+        r = server.RateLimiter(2, 10)
+        self.assertTrue(r.allow("a", now=0))
+        self.assertTrue(r.allow("a", now=1))
+        self.assertFalse(r.allow("a", now=2))
+        self.assertTrue(r.allow("b", now=2))  # another client has its own window
+        self.assertTrue(r.allow("a", now=11))  # the first hit expired
+
+
+class Rotate(unittest.TestCase):
+    def test_writes_a_new_private_key_and_prints_its_links(self):
+        with tempfile.TemporaryDirectory() as d:
+            state = Path(d)
+            with mock.patch.object(server, "STATE", state), \
+                    mock.patch.object(server.socket, "gethostname", return_value="myhost"), \
+                    mock.patch.object(server, "lan_ip", return_value="192.0.2.10"):
+                old, out = server.token(), []
+                server.rotate_key(out=out.append)
+                new = server.token()
+                self.assertNotEqual(old, new)
+                self.assertEqual((state / "token").stat().st_mode & 0o777, 0o600)
+                self.assertTrue(any(f"http://myhost.local:{server.PORT}/?k={new}" in line for line in out))
+                self.assertTrue(any(f"http://192.0.2.10:{server.PORT}/?k={new}" in line for line in out))
 
 
 class Bind(unittest.TestCase):

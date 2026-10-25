@@ -129,5 +129,9 @@ same shape (only the models you want to change) is merged on top; a model with n
 ## Access
 
 Every data response needs the key: `/status?k=<token>`. The key is generated on first run and stored in
-`~/.local/state/agent-status/token` (mode `600`). Prompts, file contents and tool output are never part of this
-payload; only folder labels, branches, models, counts and short tool hints leave the machine.
+`~/.local/state/agent-status/token` (mode `600`). `agent-status rotate-key` replaces it atomically and prints the new
+links; running servers accept only the new key on the next request, without a restart. `/status` is limited to 5
+requests per second and `/decide` to 10 per minute per client address; over the limit answers `429`.
+
+Prompts, file contents and tool output are never part of this payload; only folder labels, branches, models, counts and
+short tool hints leave the machine.

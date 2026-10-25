@@ -68,6 +68,7 @@ http://192.168.1.20:8787/?k=XXXXXXXX         (current IP)
 - **iPad / iPhone:** Safari → Share → **Add to Home Screen**. It opens full screen like an app. Set Settings → Display & Brightness → Auto-Lock to *Never* to keep it awake.
 - **Android:** Chrome → ⋮ → **Add to Home screen**. Use the full-screen button in the header, and raise the screen timeout or turn on *Stay awake* in developer options while charging.
 - **Sound:** tap the speaker icon once; browsers only allow audio after a tap. It chimes when an agent needs you, and softly when one finishes.
+- **Key:** the link carries an access key. If it leaks, `agent-status rotate-key` prints new links and the old ones stop working immediately, without restarting the server.
 
 ## Approve or deny from the tablet
 
