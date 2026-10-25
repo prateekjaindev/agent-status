@@ -6,7 +6,7 @@ from . import omarchy
 from .agents import BY_KEY
 from .claude import Transcripts
 from .codex import CodexSessions
-from .config import INTERVAL, SESSIONS, enabled_agents
+from .config import DECIDE_WAIT, DECISIONS, INTERVAL, SESSIONS, STATE, enabled_agents
 from .gitinfo import git_info
 from .hooks import read_json
 from .opencode import OpenCode
@@ -15,6 +15,47 @@ from .system import System
 from .usage import finish_rows
 
 STALE = 6 * 3600  # hook records without a known pid are dropped after this long
+TMP_STALE = 60  # a hook killed mid-write leaves a *.tmp younger than any real write
+DECISION_STALE = DECIDE_WAIT * 2  # a tap nobody consumed; the hook's wait is already over
+CLEAN_INTERVAL = 3600
+
+
+def _older(path, now, age):
+    try:
+        return now - path.stat().st_mtime > age
+    except OSError:
+        return False
+
+
+def clean_state(now=None, state=STATE, sessions=SESSIONS, decisions=DECISIONS):
+    """Remove leftovers from hooks or agents killed mid-write. Returns how many of each kind went."""
+    now = time.time() if now is None else now
+    removed = dict(tmp=0, decisions=0, sessions=0)
+    for p in list(state.rglob("*.tmp")) if state.exists() else []:
+        if _older(p, now, TMP_STALE):
+            try:
+                p.unlink()
+                removed["tmp"] += 1
+            except OSError:
+                pass
+    for p in list(decisions.glob("*")) if decisions.exists() else []:
+        if p.is_file() and _older(p, now, DECISION_STALE):
+            try:
+                p.unlink()
+                removed["decisions"] += 1
+            except OSError:
+                pass
+    for p in list(sessions.glob("*.json")) if sessions.exists() else []:
+        if not _older(p, now, STALE):
+            continue
+        s = read_json(p)
+        if s is None or not s.get("pid"):  # without a pid, hooked() cannot reap it when the agent exits
+            try:
+                p.unlink()
+                removed["sessions"] += 1
+            except OSError:
+                pass
+    return removed
 
 
 def today_start():
@@ -30,6 +71,7 @@ class Collector:
         self.procs, self.system = ProcTable(), System()
         self.claude, self.codex, self.oc = Transcripts(), CodexSessions(), OpenCode()
         self.json = b"{}"
+        self._cleaned = 0.0
 
     def hooked(self, now, on):
         cards, pids = [], set()
@@ -100,10 +142,15 @@ class Collector:
             started = time.monotonic()
             try:
                 self.tick()
+                if started - self._cleaned >= CLEAN_INTERVAL:
+                    clean_state()
+                    self._cleaned = started
             except Exception as e:  # keep serving the last good snapshot
                 print(f"agent-status: refresh failed: {e!r}", flush=True)
             time.sleep(max(INTERVAL - (time.monotonic() - started), 0.2))
 
     def start(self):
+        clean_state()
+        self._cleaned = time.monotonic()
         self.tick()
         threading.Thread(target=self.run, daemon=True).start()
