@@ -15,7 +15,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 | ID | Task | Phase | Size | Status | Depends on |
 |---|---|---|---|---|---|
 | T01 | Fix the macOS smoke test and the `.local.local` link | 0 Stabilize | S | done | |
-| T02 | Pin CI actions and add Dependabot | 0 Stabilize | S | todo | |
+| T02 | Pin CI actions and add Dependabot | 0 Stabilize | S | done | |
 | T03 | Hook test harness: subprocess runs, timing, garbage input | 0 Stabilize | M | todo | |
 | T04 | Clean up stale state files | 0 Stabilize | S | todo | |
 | T05 | Real-device and live-agent verification | 0 Stabilize | M | todo, **needs a human** | T01 |
