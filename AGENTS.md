@@ -13,7 +13,7 @@ serves a live dashboard to a tablet or phone on the LAN. **Picking up work or pl
 | `agent_status/collect.py` | `Collector.tick()`: builds the snapshot every `INTERVAL` seconds in a thread; HTTP serves the cached JSON |
 | `agent_status/claude.py`, `codex.py`, `opencode.py`, `omarchy.py` | readers for each agent's own data |
 | `agent_status/prices.json` | dated $/MTok table; `~/.config/agent-status/prices.json` overrides it |
-| `agent_status/procs.py`, `system.py`, `gitinfo.py` | process table, machine stats (Linux `/proc`+`/sys`, macOS commands), git status |
+| `agent_status/procs.py`, `gitinfo.py` | process table and git status |
 | `agent_status/server.py` | static files, `GET /status`, `POST /decide` |
 | `agent_status/install.py` | interactive install/uninstall, `doctor`, systemd or launchd service |
 | `agent_status/web/` | the dashboard: plain HTML/CSS/JS, no build step |
@@ -34,7 +34,10 @@ python scripts/make_icons.py                # regenerate web/icon-*.png
 
 These are the decisions the code depends on. Changing one is a design change: say so in the PR.
 
-- **Zero runtime dependencies**, Python ≥ 3.10. Shell out to tools the OS ships (`ps`, `nvidia-smi`, `git`) rather than adding packages.
+- **Zero runtime dependencies**, Python ≥ 3.10. Shell out to tools the OS ships (`ps`, `lsof`, `git`) rather than adding packages.
+- **Agent-focused.** The dashboard and `/status` carry agent and session data only. Machine stats (CPU, GPU, memory,
+  network, disks, temperatures, batteries) and per-agent CPU/RAM are deliberately out of scope; CPU stays internal only
+  to guess a process-only agent's state.
 - **A hook never harms the agent.** `hook()` swallows every error, prints nothing unless it is answering a permission prompt (Gemini always gets `{}`), and stays fast: it imports only `config`, `procs` and the stdlib. Measure with `time (echo '{}' | agent-status hook claude)`.
 - **One shape for events.** New agents map onto Claude Code's event names and fields in `hooks.normalize()`; `next_state()` stays agent-agnostic and pure, which is where state logic gets tested.
 - **Readers are incremental.** Track byte offsets (JSONL) or `time_updated` (SQLite) and parse only what changed; a full `tick()` should stay around 50 ms. Open other tools' databases with `mode=ro`.

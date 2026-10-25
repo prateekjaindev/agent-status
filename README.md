@@ -2,13 +2,12 @@
 
 **A live dashboard of your AI coding agents, made for the tablet or phone on your desk.**
 
-Glance over and see which agents are working, which one is waiting for your approval, what it's doing right now, how fast tokens are flowing, what today has cost, and how hard your machine is working. An old iPad or Android tablet becomes a status screen for Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, opencode and more.
+Glance over and see which agents are working, which one is waiting for your approval, what it's doing right now, how fast tokens are flowing, and what today has cost. An old iPad or Android tablet becomes a status screen for Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, opencode and more.
 
 - **Needs-you alerts**: an amber banner (and an optional chime) the moment an agent stops for a permission prompt
 - **Approve from the tablet**: Allow or Deny a Claude Code or Codex permission prompt with a tap, with the full command shown
-- **Per-session cards**: state, current tool, model, tokens/sec, context window use, session cost, prompts and tool calls, git branch with `+added −removed` lines, and the agent's own CPU and memory
+- **Per-session cards**: state, current tool, model, tokens/sec, context window use, session cost, prompts and tool calls, and git branch with `+added −removed` lines
 - **Today's usage**: tokens and cost per model, cost per hour, an hour-by-hour chart, plan limits (5-hour and weekly windows), and the last 7 days
-- **Machine performance**: CPU (per core and temperature), GPU (NVIDIA and AMD: load, VRAM, power, temperature), memory, network, disks, and device batteries (mouse, keyboard, headset). On macOS: CPU per core, memory, network, disks and the laptop battery
 - **No dependencies**: Python standard library only, one background service, and a web page that any browser on your network can open
 
 ![agent-status with five fictional agent sessions](docs/screenshot.png)
@@ -29,7 +28,7 @@ Glance over and see which agents are working, which one is waiting for your appr
 | Gemini CLI | hooks | live status, needs-you |
 | GitHub Copilot CLI | hooks | live status, needs-you |
 | opencode | its local database | live status, tok/s, tokens, real cost, lines changed |
-| Aider, Amp, Goose, Crush, Qwen Code, Kiro, Factory Droid, Cline, Kimi, Auggie, Grok CLI, Pi, Qoder | process scan | running / busy (from CPU use), CPU and memory |
+| Aider, Amp, Goose, Crush, Qwen Code, Kiro, Factory Droid, Cline, Kimi, Auggie, Grok CLI, Pi, Qoder | process scan | running / busy |
 
 On [Omarchy](https://omarchy.org), plan limits and 7-day history also come from Omarchy's agent usage panel.
 
@@ -109,7 +108,7 @@ agents ──hooks──▶ agent-status hook <agent>  ──▶ ~/.local/state/
             ▲                                               │
             └── allow/deny ◀── decisions/<token> ◀── POST /decide (tablet tap)
                                                             │
-transcripts, opencode db, /proc, /sys, nvidia-smi ──▶ agent-status serve (refreshes every 2s)
+transcripts, opencode db, process table ──▶ agent-status serve (refreshes every 2s)
                                                             │
                                      tablet ◀── http://host:8787 (static page + /status JSON)
 ```
@@ -133,7 +132,7 @@ The frontend is plain HTML, CSS and JavaScript in `agent_status/web/`, with no b
 
 ## Roadmap
 
-Planned work (macOS extras, Windows, usage history and budgets, push notifications, more agents' token data, remote machines, themes, packaging) is tracked task by task in [`docs/PLAN.md`](docs/PLAN.md), each with what "done" means. Pick one and open a PR; [`AGENTS.md`](AGENTS.md) has the conventions.
+Planned work (usage history and budgets, push notifications, more agents' token data, remote machines, themes, packaging) is tracked task by task in [`docs/PLAN.md`](docs/PLAN.md), each with what "done" means. Pick one and open a PR; [`AGENTS.md`](AGENTS.md) has the conventions.
 
 ## License
 

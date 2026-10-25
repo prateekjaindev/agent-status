@@ -123,7 +123,7 @@ def agent_pid():
     pid, procs = os.getppid(), table() if MAC else None  # macOS: one `ps` call instead of /proc lookups
     for _ in range(12):
         try:
-            comm, ppid, _, _, argv = procs[pid] if MAC else proc(pid)
+            comm, ppid, _, argv = procs[pid] if MAC else proc(pid)
             if agent_key(comm, argv):
                 return pid
         except (OSError, ValueError, IndexError, KeyError):

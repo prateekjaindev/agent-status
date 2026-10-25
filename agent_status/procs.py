@@ -1,16 +1,19 @@
-"""Process table: finds agent processes and measures CPU/RAM per process tree, from /proc (or `ps` on macOS)."""
-import os, subprocess
+"""Process table: finds agent processes, from /proc (or `ps` on macOS)."""
+import os, subprocess, sys
 from collections import defaultdict
 from pathlib import Path
 
 from .agents import AGENTS, BY_KEY
-from .system import MAC, run
 
+MAC = sys.platform == "darwin"
 CLK_TCK = os.sysconf("SC_CLK_TCK")
-PAGE = os.sysconf("SC_PAGE_SIZE")
 INTERPRETERS = {"node", "bun", "deno", "python", "python3"}
 NAMES = {p: a.key for a in AGENTS for p in a.procs if "/" not in p}
 PACKAGES = {p: a.key for a in AGENTS for p in a.procs if "/" in p}  # npm-installed agents run as `node .../pkg/...`
+
+
+def run(*cmd):
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout
 
 
 def read_stat(pid):
@@ -23,9 +26,9 @@ def read_argv(pid):
 
 
 def proc(pid):
-    """(comm, ppid, cpu ticks, rss bytes, argv for interpreters else None) of one process, from /proc."""
+    """(comm, ppid, cpu ticks, argv for interpreters else None) of one process, from /proc."""
     comm, f = read_stat(pid)
-    return comm, int(f[1]), int(f[11]) + int(f[12]), int(f[21]) * PAGE, read_argv(pid) if comm in INTERPRETERS else None
+    return comm, int(f[1]), int(f[11]) + int(f[12]), read_argv(pid) if comm in INTERPRETERS else None
 
 
 def cputime(s):
@@ -38,14 +41,14 @@ def cputime(s):
 
 
 def parse_ps(text):
-    """`ps -axww -o pid=,ppid=,rss=,time=,args=` (macOS) into {pid: proc tuple}.
+    """`ps -axww -o pid=,ppid=,time=,args=` (macOS) into {pid: proc tuple}.
     comm comes from argv[0], not the executable: Node agents set their process title (Claude Code shows as `claude`)."""
     procs = {}
     for line in text.splitlines():
-        f = line.split(None, 4)
+        f = line.split(None, 3)
         try:
-            argv = f[4].split()  # shortcut: arguments containing spaces get split; fine for spotting agent scripts
-            procs[int(f[0])] = (Path(argv[0]).name, int(f[1]), round(cputime(f[3]) * CLK_TCK), int(f[2]) * 1024, argv)
+            argv = f[3].split()  # shortcut: arguments containing spaces get split; fine for spotting agent scripts
+            procs[int(f[0])] = (Path(argv[0]).name, int(f[1]), round(cputime(f[2]) * CLK_TCK), argv)
         except (ValueError, IndexError):
             pass
     return procs
@@ -55,7 +58,7 @@ def table():
     """Every process: {pid: proc tuple}."""
     if MAC:
         try:
-            return parse_ps(run("ps", "-axww", "-o", "pid=,ppid=,rss=,time=,args="))
+            return parse_ps(run("ps", "-axww", "-o", "pid=,ppid=,time=,args="))
         except (OSError, subprocess.SubprocessError):
             return {}
     procs = {}
@@ -94,7 +97,7 @@ def label(cwd):
 
 class ProcTable:
     def __init__(self):
-        self.procs = {}      # pid -> (comm, ppid, ticks, rss bytes, argv or None)
+        self.procs = {}      # pid -> (comm, ppid, ticks, argv or None)
         self.cpu = {}        # pid -> % of one core since last refresh
         self.children = defaultdict(list)
         self._prev = {}      # pid -> (ticks, time)
@@ -117,16 +120,15 @@ class ProcTable:
         self.procs, self.cpu, self.children = procs, cpu, children
 
     def tree(self, pid):
-        """(cpu %, rss bytes) of a process and all its descendants."""
-        cpu = rss = 0
+        """CPU % of a process and all its descendants; used only to guess a process-only agent's state."""
+        cpu = 0
         stack = [pid]
         while stack:
             q = stack.pop()
             if q in self.procs:
                 cpu += self.cpu.get(q, 0)
-                rss += self.procs[q][3]
                 stack += self.children.get(q, [])
-        return round(cpu, 1), rss
+        return round(cpu, 1)
 
     def cwd(self, pid):
         if not MAC:
@@ -144,14 +146,14 @@ class ProcTable:
     def scanned(self, now, skip, enabled=None):
         """Cards for agent processes not already reported by hooks. State is guessed from CPU use."""
         cards = []
-        for pid, (comm, ppid, _, _, argv) in self.procs.items():
+        for pid, (comm, ppid, _, argv) in self.procs.items():
             key = agent_key(comm, argv)
             if not key or pid in skip or (enabled is not None and key not in enabled):
                 continue
             parent = self.procs.get(ppid)
-            if parent and agent_key(parent[0], parent[4]) == key:
+            if parent and agent_key(parent[0], parent[3]) == key:
                 continue  # child of the same agent
-            cpu, rss = self.tree(pid)
+            cpu = self.tree(pid)
             state = "working" if cpu > 3 else "idle"
             if self._since.get(pid, (None,))[0] != state:
                 self._since[pid] = (state, now)
@@ -159,5 +161,5 @@ class ProcTable:
             hooked = BY_KEY[key].how == "hooks"
             cards.append(dict(id=f"pid-{pid}", kind=BY_KEY[key].name, name=label(cwd), cwd=cwd, state=state,
                               detail="restart it to get live status" if hooked else ("busy" if state == "working" else ""),
-                              since=self._since[pid][1], cpu=cpu, rss=rss, guessed=True))
+                              since=self._since[pid][1], guessed=True))
         return cards

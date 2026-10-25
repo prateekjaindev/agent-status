@@ -34,12 +34,13 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 | T18 | Session detail view (timeline of recent events) | 3 Interaction | L | todo | T06 |
 | T19 | Key rotation and `/decide` rate limit | 3 Interaction | S | done | |
 | T20 | Agents on other machines report to one dashboard | 4 Platforms | L | todo | T06, T19 |
-| T21 | macOS temperatures, GPU and Bluetooth batteries | 4 Platforms | M | todo, **needs a human** | T01 |
+| T21 | macOS temperatures, GPU and Bluetooth batteries | 4 Platforms | M | dropped | T01 |
 | T22 | Windows host support | 4 Platforms | L | todo | T03 |
 | T23 | Light theme, wall mode, per-device layout | 4 Platforms | M | todo | |
 | T24 | Other clients: terminal UI and ESP32 example | 4 Platforms | M | todo | T06 |
 
-Sizes: S = under half a day, M = about a day, L = several days.
+Sizes: S = under half a day, M = about a day, L = several days. Statuses: `todo`, `done`, `needs a human`, and `dropped`
+(intentionally out of scope).
 
 ## Current state (2026-10-25)
 
@@ -47,12 +48,14 @@ Working and verified on Linux (Omarchy, Python 3.14) with an iPad on the LAN:
 
 - **Hooks:** Claude Code and Cursor, live. Allow/Deny from the dashboard was tested against a live Claude Code session in a desktop browser.
 - **Readers:** Claude transcripts (tokens, cost, tok/s, context), opencode database (state, real cost, tok/s), Codex session logs (tokens, context, rate limits), and Omarchy's usage files (plan limits, 7-day history).
-- **Machine stats on Linux:** CPU, GPU (NVIDIA and AMD), memory, network, disks, batteries.
-- **API:** `/status` carries `schema: 1`, its full shape is documented in [`docs/api.md`](api.md), and a contract test builds a snapshot from fixtures.
-- **Demo mode:** `agent-status serve --demo` serves five fictional sessions with moving sparklines; the README screenshots come from it and the contract test checks it.
+- **API:** `/status` carries `schema: 2`, its full shape is documented in [`docs/api.md`](api.md), and a contract test builds a snapshot from fixtures.
+- **Demo mode:** `agent-status serve --demo` serves five fictional sessions with moving card states; the README screenshots come from it and the contract test checks it.
 - **Prices:** `agent_status/prices.json` is a dated table (Claude and OpenAI), shown in the Models panel; `~/.config/agent-status/prices.json` overrides individual models.
 - **Packaging:** the version lives only in `agent_status/__init__.py`, a wheel builds from it, and a tagged release workflow publishes to PyPI once the owner configures trusted publishing.
-- **Installer and tests:** the interactive installer works, 75 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
+- **Installer and tests:** the interactive installer works, 69 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
+
+The dashboard is agent-focused: machine stats (CPU, GPU, memory, network, disks, batteries) and per-agent CPU/RAM are out of
+scope (T21).
 
 Built from documentation but **not yet run against the real thing**:
 
@@ -77,7 +80,7 @@ Built from documentation but **not yet run against the real thing**:
 
 **Why.** CI's `test (macos-latest, 3.13)` job passes the unit tests but fails "smoke test the server": the server prints its links, then `curl` to `127.0.0.1:18787` times out (exit 28). Until this is green, macOS support is unproven.
 
-**Where.** `.github/workflows/test.yml`, `agent_status/server.py`, `agent_status/collect.py`, `agent_status/system.py` and `agent_status/procs.py` (the macOS paths).
+**Where.** `.github/workflows/test.yml`, `agent_status/server.py`, `agent_status/collect.py` and `agent_status/procs.py` (the macOS paths).
 
 **Approach.**
 1. Reproduce in CI with diagnostics: give curl `--max-time 10`, run the server with output to a log file, and after curl fails, print the log and `lsof -iTCP:18787` (is it listening?). To see where it is stuck, start the server with `faulthandler.register(signal.SIGUSR1)` and send `SIGUSR1` before killing it. Decide whether the socket is never bound, or bound but the handler blocks.
@@ -86,7 +89,7 @@ Built from documentation but **not yet run against the real thing**:
 
 **Done when.**
 - The `macos-latest` job is green on `main`.
-- Every subprocess call in `system.py` and `procs.py` passes `timeout=`.
+- Every macOS subprocess call passes `timeout=`.
 - A unit test covers `urls()` for both `myhost` and `myhost.local`.
 
 ### T02 · Pin CI actions and add Dependabot
@@ -320,18 +323,14 @@ Vendor docs used so far: [Claude Code hooks](https://code.claude.com/docs/en/hoo
 - A dead remote expires.
 - A hook with the server unreachable still finishes within T03's budget.
 
-### T21 · macOS temperatures, GPU and Bluetooth batteries (**needs a human**)
+### T21 · Dropped: macOS temperatures, GPU and Bluetooth batteries
 
-**Approach.** Use stdlib-callable sources only: `ioreg -r -c AppleSmartBattery` and `ioreg -r -k BatteryPercent` (Bluetooth devices such as Magic Mouse and AirPods report `BatteryPercent`), `powermetrics` needs root so skip it, and the GPU name comes from `system_profiler SPDisplaysDataType -json`, run once and cached. Capture real output into `tests/fixtures/macos/`.
-
-**Done when.**
-- On a real Mac the Storage/Devices tile lists Bluetooth batteries.
-- The GPU tile shows the chip name.
-- Fixtures come from real output.
+The dashboard no longer tracks machine hardware, so this task was dropped on 2026-10-25. It used to plan `ioreg` and
+`system_profiler` probes for batteries, temperatures and the GPU name; none of that is shown now.
 
 ### T22 · Windows host support
 
-**Approach.** Processes from `tasklist /v /fo csv` or PowerShell `Get-CimInstance Win32_Process` (CommandLine, ParentProcessId); memory and CPU via `ctypes` (`GlobalMemoryStatusEx`, `GetSystemTimes`); service via a Task Scheduler entry created by `schtasks`. Hook commands in agent configs need Windows quoting, and Copilot needs `powershell` instead of `bash` in `own_file`. Add `windows-latest` to CI.
+**Approach.** Processes from `tasklist /v /fo csv` or PowerShell `Get-CimInstance Win32_Process` (CommandLine, ParentProcessId); service via a Task Scheduler entry created by `schtasks`. Hook commands in agent configs need Windows quoting, and Copilot needs `powershell` instead of `bash` in `own_file`. Add `windows-latest` to CI.
 
 **Done when.**
 - CI is green on Windows, including the T03 hook harness.

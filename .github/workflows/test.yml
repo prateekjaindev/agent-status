@@ -47,4 +47,4 @@ jobs:
             cat server.log
             exit 1
           fi
-          curl -sf --max-time 10 "http://127.0.0.1:18787/status?k=$(cat ~/.local/state/agent-status/token)" | python -c "import json,sys; d=json.load(sys.stdin); assert 'system' in d and 'agents' in d"
+          curl -sf --max-time 10 "http://127.0.0.1:18787/status?k=$(cat ~/.local/state/agent-status/token)" | python -c "import json,sys; d=json.load(sys.stdin); assert d['schema'] == 2 and 'agents' in d and 'today' in d"

@@ -11,7 +11,6 @@ from .gitinfo import git_info
 from .hooks import read_json
 from .opencode import OpenCode
 from .procs import ProcTable, label
-from .system import System
 from .usage import PRICES_AS_OF, finish_rows
 
 STALE = 6 * 3600  # hook records without a known pid are dropped after this long
@@ -68,7 +67,7 @@ def add_hours(*series):
 
 class Collector:
     def __init__(self):
-        self.procs, self.system = ProcTable(), System()
+        self.procs = ProcTable()
         self.claude, self.codex, self.oc = Transcripts(), CodexSessions(), OpenCode()
         self.json = b"{}"
         self._cleaned = 0.0
@@ -86,11 +85,10 @@ class Collector:
             if (not pid and now - s.get("updated", 0) > STALE) or not on(kind):
                 continue
             pids.add(pid)
-            cpu, rss = self.procs.tree(pid) if pid else (None, None)
             agent = BY_KEY.get(kind)
             card = dict(id=f.stem, kind=agent.name if agent else kind, name=label(s.get("cwd", "")), cwd=s.get("cwd", ""),
                         state=s["state"], detail=s.get("detail", ""), since=s.get("since", now), started=s.get("started"),
-                        model=s.get("model", ""), prompts=s.get("prompts"), tools=s.get("tools"), cpu=cpu, rss=rss)
+                        model=s.get("model", ""), prompts=s.get("prompts"), tools=s.get("tools"))
             if s.get("ask") and s.get("ask_until", 0) > now:  # a hook is waiting for an Allow/Deny tap
                 card.update(ask=s["ask"], ask_until=s["ask_until"], ask_text=s.get("ask_text", ""))
             reader = {"claude": self.claude, "codex": self.codex}.get(kind)
@@ -130,7 +128,7 @@ class Collector:
         limits += [l for l in om_limits if l["name"] not in have]
         rows = finish_rows(rows + om_rows)
         snapshot = dict(
-            schema=1, now=now, interval=INTERVAL, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week, system=self.system.sample(now),
+            schema=2, now=now, interval=INTERVAL, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week,
             today=dict(cost=sum(r["cost"] or 0 for r in rows), tokens=sum(r["total"] for r in rows),
                        output=sum(r["output"] for r in rows), burn=burn,
                        hours=add_hours(*hours) if hours else [[0, 0]] * 24, models=rows))
