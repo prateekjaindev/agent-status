@@ -49,6 +49,8 @@ class Collector:
             card = dict(id=f.stem, kind=agent.name if agent else kind, name=label(s.get("cwd", "")), cwd=s.get("cwd", ""),
                         state=s["state"], detail=s.get("detail", ""), since=s.get("since", now), started=s.get("started"),
                         model=s.get("model", ""), prompts=s.get("prompts"), tools=s.get("tools"), cpu=cpu, rss=rss)
+            if s.get("ask") and s.get("ask_until", 0) > now:  # a hook is waiting for an Allow/Deny tap
+                card.update(ask=s["ask"], ask_until=s["ask_until"], ask_text=s.get("ask_text", ""))
             reader = {"claude": self.claude, "codex": self.codex}.get(kind)
             if reader:
                 card.update({k: v for k, v in reader.session(s.get("transcript_path")).items() if v is not None})

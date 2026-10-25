@@ -121,6 +121,12 @@ svg { display: block; }
 .model { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
 .c-detail { margin-top: 10px; font-size: 15px; color: #d6dbe2; min-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .s-waiting .c-detail { color: #ffe2b0; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.c-ask { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.3); font-family: var(--mono); font-size: 12px; color: var(--text); white-space: pre-wrap; word-break: break-all; max-height: 7.5em; overflow: auto; }
+.c-act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.c-act button { min-height: 44px; padding: 0 22px; border-radius: 12px; border: 1px solid var(--line); font: 600 15px var(--font); color: var(--bg); background: var(--green); cursor: pointer; }
+.c-act button[data-d="deny"] { background: transparent; color: var(--red); border-color: rgba(255, 107, 107, 0.6); }
+.c-act button:disabled { opacity: 0.4; }
+.c-act .left { font-size: 12px; color: var(--muted); }
 .ctx { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--muted); }
 .bar { flex: 1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
 .bar i { display: block; height: 100%; border-radius: 3px; background: var(--b, var(--blue)); }

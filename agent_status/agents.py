@@ -35,16 +35,20 @@ def save_json(path, cfg):
 
 # ---------- hook file formats ----------
 
-def nested(path, events, entry, matcher=None):
+def nested(path, events, entry, matcher=None, per_event=None):
     """{"hooks": {Event: [{"matcher"?: .., "hooks": [{"type": "command", "command": ..}]}]}}
-    Used by Claude Code, Codex and Gemini CLI."""
+    Used by Claude Code, Codex and Gemini CLI. per_event overrides entry fields for some events."""
     def install(cmd):
         cfg = load_json(path)
         hooks = cfg.setdefault("hooks", {})
         for ev in events:
             groups = hooks.setdefault(ev, [])
-            if not any(ours(h.get("command")) for g in groups for h in g.get("hooks", [])):
-                group = {"hooks": [{"type": "command", "command": cmd, **entry}]}
+            fields = {"type": "command", "command": cmd, **entry, **(per_event or {}).get(ev, {})}
+            mine = [h for g in groups for h in g.get("hooks", []) if ours(h.get("command"))]
+            for h in mine:
+                h.update(fields)  # an older install may carry a stale path or timeout
+            if not mine:
+                group = {"hooks": [fields]}
                 if matcher is not None:
                     group = {"matcher": matcher, **group}
                 groups.append(group)
@@ -141,8 +145,10 @@ class Agent:
             self.hook_files[1]()
 
 
-CLAUDE_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Notification", "Stop", "SessionEnd"]
+CLAUDE_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification",
+                 "Stop", "SessionEnd"]
 CODEX_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd"]
+DECIDE_TIMEOUT = {"PermissionRequest": {"timeout": 90}}  # room for the hook's 60s wait for a dashboard tap
 GEMINI_EVENTS = ["SessionStart", "BeforeAgent", "BeforeTool", "AfterTool", "AfterAgent", "Notification", "SessionEnd"]
 # Cursor treats a silent reply from its permission hooks as unresolved, so only observational events are used.
 CURSOR_EVENTS = ["sessionStart", "afterAgentThought", "postToolUse", "stop", "sessionEnd"]
@@ -151,10 +157,10 @@ COPILOT_EVENTS = ["sessionStart", "userPromptSubmitted", "preToolUse", "postTool
 
 AGENTS = [
     Agent("claude", "Claude Code", "hooks", bins=("claude",), paths=(CLAUDE_DIR,), procs=("claude", "@anthropic-ai/claude-code"),
-          hook_files=nested(CLAUDE_DIR / "settings.json", CLAUDE_EVENTS, {"timeout": 5}),
+          hook_files=nested(CLAUDE_DIR / "settings.json", CLAUDE_EVENTS, {"timeout": 5}, per_event=DECIDE_TIMEOUT),
           note="status, tokens, cost, tok/s, context"),
     Agent("codex", "Codex CLI", "hooks", bins=("codex",), paths=(HOME / ".codex",), procs=("codex", "@openai/codex"),
-          hook_files=nested(HOME / ".codex/hooks.json", CODEX_EVENTS, {"timeout": 5}),
+          hook_files=nested(HOME / ".codex/hooks.json", CODEX_EVENTS, {"timeout": 5}, per_event=DECIDE_TIMEOUT),
           note="status, tokens, context, plan limits"),
     Agent("cursor", "Cursor CLI", "hooks", bins=("cursor-agent",), paths=(HOME / ".cursor",), procs=("cursor-agent",),
           hook_files=flat(HOME / ".cursor/hooks.json", CURSOR_EVENTS), note="status"),

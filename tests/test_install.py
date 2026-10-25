@@ -37,6 +37,16 @@ class Formats(unittest.TestCase):
         self.assertEqual(group["matcher"], "*")
         self.assertEqual(group["hooks"][0]["timeout"], 5000)
 
+    def test_nested_per_event_and_refresh(self):
+        path = self.d / "settings.json"
+        path.write_text(json.dumps({"hooks": {"PermissionRequest": [{"hooks": [
+            {"type": "command", "command": "/old/agent-status hook", "timeout": 5}]}]}}))
+        install, _ = nested(path, ["PermissionRequest", "Stop"], {"timeout": 5}, per_event={"PermissionRequest": {"timeout": 90}})
+        install(f"{CMD} hook claude")
+        hooks = json.loads(path.read_text())["hooks"]
+        self.assertEqual(hooks["PermissionRequest"], [{"hooks": [{"type": "command", "command": f"{CMD} hook claude", "timeout": 90}]}])
+        self.assertEqual(hooks["Stop"][0]["hooks"][0]["timeout"], 5)
+
     def test_uninstall_leaves_untouched_files_alone(self):
         path = self.d / "hooks.json"
         path.write_text('{"hooks":{}}')  # compact formatting the user chose

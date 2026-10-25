@@ -1,0 +1,3 @@
+p4400
+fcwd
+n/Users/me/src/agent-status

@@ -141,6 +141,7 @@ setInterval(clock, 1000);
 
 // ---------- agents ----------
 const cardEls = new Map();
+const sent = new Set(), askErr = new Map();  // Allow/Deny taps, keyed by the prompt's one-time ask token
 const prevState = new Map();
 let lastOrder = "", firstRender = true;
 
@@ -172,6 +173,16 @@ function cardHTML(a, now) {
     <div class="c-stats">${stats.join("")}</div>${foot}`;
 }
 
+// Kept out of cardHTML: the card body re-renders every tick, and replacing a button mid-tap loses the tap.
+function actHTML(a) {
+  if (!a.ask) return "";
+  const err = askErr.get(a.ask);
+  return `<div class="c-ask">${esc(a.ask_text)}</div><div class="c-act">${sent.has(a.ask)
+    ? '<span class="muted">Sending…</span>'
+    : `<button data-d="allow" data-ask="${esc(a.ask)}">Allow</button><button data-d="deny" data-ask="${esc(a.ask)}">Deny</button>`}
+    <span class="left">${err ? esc(err) : "No tap in time: it asks in the terminal"}</span></div>`;
+}
+
 function renderAgents(d) {
   const list = d.agents.slice().sort((x, y) => ORDER[x.state] - ORDER[y.state] || y.since - x.since);
   const seen = new Set(), box = $("cards");
@@ -179,12 +190,14 @@ function renderAgents(d) {
     let el = cardEls.get(a.id);
     if (!el) {
       el = document.createElement("article");
-      el.innerHTML = '<div class="shine"></div><div class="body"></div>';
+      el.innerHTML = '<div class="shine"></div><div class="body"></div><div class="act"></div>';
+      el.dataset.id = a.id;
       cardEls.set(a.id, el);
     }
     const cls = `card s-${a.state}${a.guessed ? " guessed" : ""}`;
     if (el.className !== cls) el.className = cls;
-    setHTML(el.lastChild, cardHTML(a, d.now));
+    setHTML(el.children[1], cardHTML(a, d.now));
+    setHTML(el.lastChild, actHTML(a));
     const before = prevState.get(a.id);
     if (!firstRender && before !== a.state && (a.state === "waiting" || (a.state === "done" && before === "working"))) chime(a.state);
     prevState.set(a.id, a.state);
@@ -211,6 +224,25 @@ function renderAgents(d) {
   }
   document.title = waiting.length ? `(${waiting.length}) Agent Status` : "Agent Status";
 }
+
+// Allow/Deny on a waiting card: the agent's hook is polling for this answer.
+$("cards").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-d]");
+  if (!b || sent.has(b.dataset.ask)) return;
+  const ask = b.dataset.ask, card = b.closest("article");
+  sent.add(ask); askErr.delete(ask);
+  card.querySelectorAll(".c-act button").forEach((x) => { x.disabled = true; });  // repainted as "Sending…" next tick
+  try {
+    const r = await fetch("decide?k=" + encodeURIComponent(KEY), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: card.dataset.id, ask, decision: b.dataset.d }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "HTTP " + r.status);
+  } catch (err) {
+    sent.delete(ask); askErr.set(ask, "Not sent: " + err.message);
+    card.querySelectorAll(".c-act button").forEach((x) => { x.disabled = false; });
+  }
+});
 
 // ---------- usage ----------
 function renderToday(d) {

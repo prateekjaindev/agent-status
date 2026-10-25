@@ -5,17 +5,18 @@
 Glance over and see which agents are working, which one is waiting for your approval, what it's doing right now, how fast tokens are flowing, what today has cost, and how hard your machine is working. An old iPad or Android tablet becomes a status screen for Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, opencode and more.
 
 - **Needs-you alerts**: an amber banner (and an optional chime) the moment an agent stops for a permission prompt
+- **Approve from the tablet**: Allow or Deny a Claude Code or Codex permission prompt with a tap, with the full command shown
 - **Per-session cards**: state, current tool, model, tokens/sec, context window use, session cost, prompts and tool calls, git branch with `+added −removed` lines, and the agent's own CPU and memory
 - **Today's usage**: tokens and cost per model, cost per hour, an hour-by-hour chart, plan limits (5-hour and weekly windows), and the last 7 days
-- **Machine performance**: CPU (per core and temperature), GPU (NVIDIA and AMD: load, VRAM, power, temperature), memory, network, disks, and device batteries (mouse, keyboard, headset)
+- **Machine performance**: CPU (per core and temperature), GPU (NVIDIA and AMD: load, VRAM, power, temperature), memory, network, disks, and device batteries (mouse, keyboard, headset). On macOS: CPU per core, memory, network, disks and the laptop battery
 - **No dependencies**: Python standard library only, one background service, and a web page that any browser on your network can open
 
 ## Supported agents
 
 | Agent | How it's tracked | What you get |
 |---|---|---|
-| Claude Code | hooks + session logs | live status, needs-you, tok/s, context %, cost (API-price equivalent) |
-| Codex CLI | hooks + session logs | live status, needs-you, context %, tokens, plan limits |
+| Claude Code | hooks + session logs | live status, needs-you, allow/deny, tok/s, context %, cost (API-price equivalent) |
+| Codex CLI | hooks + session logs | live status, needs-you, allow/deny, context %, tokens, plan limits |
 | Cursor CLI | hooks | live status |
 | Gemini CLI | hooks | live status, needs-you |
 | GitHub Copilot CLI | hooks | live status, needs-you |
@@ -43,7 +44,7 @@ Which agents should agent-status track?  (detected ones are preselected)
 Toggle by number (e.g. 3 7), [a]ll found, [n]one, Enter to continue, [q]uit:
 ```
 
-It then adds hooks to the agents you picked (keeping a `.bak-agent-status` backup of each config file it touches), starts a systemd user service, and prints the link to open. For scripts, use `agent-status install --agents claude,codex,opencode` or `--yes` for "everything detected".
+It then adds hooks to the agents you picked (keeping a `.bak-agent-status` backup of each config file it touches), starts a background service (a systemd user service on Linux, a LaunchAgent in `~/Library/LaunchAgents` on macOS), and prints the link to open. For scripts, use `agent-status install --agents claude,codex,opencode` or `--yes` for "everything detected".
 
 Restart agents that were already running so they load the new hooks. Remove everything with `agent-status uninstall`.
 
@@ -60,13 +61,25 @@ http://192.168.1.20:8787/?k=XXXXXXXX         (current IP)
 - **Android:** Chrome → ⋮ → **Add to Home screen**. Use the full-screen button in the header, and raise the screen timeout or turn on *Stay awake* in developer options while charging.
 - **Sound:** tap the speaker icon once; browsers only allow audio after a tap. It chimes when an agent needs you, and softly when one finishes.
 
+## Approve or deny from the tablet
+
+When Claude Code or Codex asks permission to run a tool, its card shows the exact command (or file) with **Allow** and **Deny** buttons. A tap answers the prompt in the terminal for you; Deny tells the agent the user refused.
+
+- The terminal prompt stays usable the whole time: answer whichever is closer. If nobody taps within 60 seconds, the hook steps aside and the terminal prompt is the only way to answer.
+- The hook only waits while a dashboard is open (one has polled in the last 10 seconds). With no tablet watching, prompts behave exactly as before.
+- Any error, timeout or stale tap means "no decision", never an automatic allow. Your deny rules still apply on top of an Allow.
+- GitHub Copilot CLI shows the prompt as *needs you* but has no buttons: its `permissionRequest` hook runs before its own rules and session approvals, so waiting there would stall tool calls you had already allowed.
+- Upgrading from an earlier version? Run `agent-status install` again to add the permission hook (Claude Code) and its longer timeout (Codex), then restart running agents. Codex may ask you to trust the changed hook.
+
 If the page doesn't load, the computer's firewall is the usual cause (`sudo ufw allow 8787/tcp`). If the `.local` name doesn't resolve, use the IP link or reserve the computer's address in your router.
 
 **Optional HTTPS:** with [Tailscale](https://tailscale.com), `tailscale serve --bg 8787` gives you an `https://` address that works anywhere on your tailnet. The browser's *keep screen on* button (Wake Lock) only appears over HTTPS.
 
 ## Security
 
-The page itself is public on your network, but the data endpoint needs the key in the link (`?k=…`), which is generated on first run and stored in `~/.local/state/agent-status/token` (mode 600). The dashboard shows folder names, git branches and short tool descriptions (e.g. `Bash: run tests`), never prompts or file contents. To limit it to one machine, set `AGENT_STATUS_HOST=127.0.0.1`.
+The page itself is public on your network, but the data endpoint needs the key in the link (`?k=…`), which is generated on first run and stored in `~/.local/state/agent-status/token` (mode 600). The dashboard shows folder names, git branches and short tool descriptions (e.g. `Bash: run tests`), never prompts or file contents. A prompt waiting for approval also shows the command or file path being approved.
+
+**Anyone with the link can approve commands** while a prompt is waiting, so treat the link like a password. Approvals go to `POST /decide`, which needs the same key, accepts only a JSON body (a cross-site form can't send one without a CORS preflight, which the server never grants), rejects a foreign `Origin`, and must quote a one-time token that is new for every prompt and expires with it. Over plain LAN HTTP someone sniffing your Wi-Fi can read the key; use Tailscale (below) for HTTPS, or set `AGENT_STATUS_HOST=127.0.0.1` to limit it to one machine.
 
 ## Configuration
 
@@ -84,13 +97,15 @@ Your agent choice is saved in `~/.config/agent-status/config.json`; run `agent-s
 
 ```
 agents ──hooks──▶ agent-status hook <agent>  ──▶ ~/.local/state/agent-status/sessions/*.json
+            ▲                                               │
+            └── allow/deny ◀── decisions/<token> ◀── POST /decide (tablet tap)
                                                             │
 transcripts, opencode db, /proc, /sys, nvidia-smi ──▶ agent-status serve (refreshes every 2s)
                                                             │
                                      tablet ◀── http://host:8787 (static page + /status JSON)
 ```
 
-- **Hooks** run on every event, so they're tiny: parse the event, update one JSON file, exit. They never block or fail the agent.
+- **Hooks** run on every event, so they're tiny: parse the event, update one JSON file, exit. They never fail the agent; the only one that waits is a permission request while a dashboard is open (at most 60 seconds, polling `decisions/` for a tap).
 - **Readers** parse transcripts and databases incrementally: only what was appended since the last refresh.
 - **Costs**: Claude costs are what the same tokens would cost on the API (subscriptions bill differently, so they're marked `≈`); opencode costs are what opencode itself recorded. tok/s includes time to first token.
 
@@ -110,9 +125,9 @@ The frontend is plain HTML, CSS and JavaScript in `agent_status/web/`, with no b
 
 Ideas, roughly in order of value. Contributions welcome.
 
-- **macOS and Windows hosts**: process and system stats come from `/proc` and `/sys` today (agents and usage already work elsewhere, but the system panel is empty)
+- **Windows hosts**: process and system stats come from `/proc` and `/sys` on Linux and built-in commands on macOS; Windows has neither yet (agents and usage already work there, but the system panel is empty)
+- **macOS extras**: CPU/NVMe temperatures and GPU load need root (`powermetrics`), and Bluetooth device batteries need `ioreg`, so the macOS system panel shows neither yet
 - **Usage history**: keep daily totals in SQLite for weekly and monthly charts, budgets and "cost per project", without depending on Omarchy
-- **Act from the tablet**: approve or deny a permission prompt with a tap (Claude Code, Codex and Copilot hooks can return a decision)
 - **Push notifications**: ntfy or Pushover alerts when an agent needs you and the tablet is out of sight
 - **More data sources**: Gemini CLI and Copilot CLI token logs, Cursor usage via its API, opencode permission prompts via a plugin, Aider's chat history
 - **Agents on other machines**: let a remote dev box or CI runner report to the same dashboard

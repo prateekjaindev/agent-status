@@ -1,11 +1,13 @@
 """`agent-status install`: pick agents, add their hooks, start the background service. `uninstall` reverses it."""
-import json, shutil, subprocess, sys
+import json, os, plistlib, shutil, subprocess, sys, time
 from pathlib import Path
 
 from .agents import AGENTS, BY_KEY
 from .config import HOME, USER_CONFIG, enabled_agents
 
 UNIT = HOME / ".config/systemd/user/agent-status.service"
+LABEL = "dev.agent-status"
+PLIST = HOME / f"Library/LaunchAgents/{LABEL}.plist"
 HOW = {"hooks": "live hooks", "data": "reads its data", "process": "process only"}
 
 
@@ -16,6 +18,19 @@ def command():
 
 def systemctl(*args):
     return subprocess.run(["systemctl", "--user", *args], check=False, capture_output=True)
+
+
+def launchctl(*args):
+    return subprocess.run(["launchctl", *args], check=False, capture_output=True)
+
+
+def launch_agent():
+    """macOS LaunchAgent: start at login, restart if it crashes."""
+    exe = shutil.which("agent-status")
+    log = str(HOME / "Library/Logs/agent-status.log")
+    return dict(Label=LABEL, ProgramArguments=[exe, "serve"] if exe else [sys.executable, "-m", "agent_status", "serve"],
+                RunAtLoad=True, KeepAlive=dict(SuccessfulExit=False), StandardOutPath=log, StandardErrorPath=log,
+                EnvironmentVariables=dict(PATH=os.environ.get("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")))  # finds Homebrew git
 
 
 def table(selected):
@@ -99,7 +114,18 @@ def install(args=()):
             if a.key in previous:
                 print(f"  – {a.name} — hooks removed")
 
-    if opts["service"] and shutil.which("systemctl"):
+    if opts["service"] and sys.platform == "darwin":
+        PLIST.parent.mkdir(parents=True, exist_ok=True)
+        PLIST.write_bytes(plistlib.dumps(launch_agent()))
+        launchctl("bootout", f"gui/{os.getuid()}/{LABEL}")  # no-op on first install
+        for _ in range(5):  # bootout returns before the old job is fully gone, so bootstrap can briefly fail
+            if launchctl("bootstrap", f"gui/{os.getuid()}", str(PLIST)).returncode == 0:
+                print(f"  ✓ background service running ({PLIST.name})")
+                break
+            time.sleep(1)
+        else:
+            print(f"  ! launchctl could not start {PLIST}: run `{exe} serve` yourself")
+    elif opts["service"] and shutil.which("systemctl"):
         UNIT.parent.mkdir(parents=True, exist_ok=True)
         UNIT.write_text(f"[Unit]\nDescription=agent-status dashboard\nAfter=network-online.target\n\n"
                         f"[Service]\nExecStart={exe} serve\nRestart=on-failure\n\n[Install]\nWantedBy=default.target\n")
@@ -131,6 +157,10 @@ def uninstall(args=()):
         systemctl("disable", "--now", "agent-status")
         UNIT.unlink()
         systemctl("daemon-reload")
+        print("  ✓ background service removed")
+    if PLIST.exists():
+        launchctl("bootout", f"gui/{os.getuid()}/{LABEL}")
+        PLIST.unlink()
         print("  ✓ background service removed")
     USER_CONFIG.unlink(missing_ok=True)
     print("  ✓ settings removed (session state in ~/.local/state/agent-status is left in place)")
