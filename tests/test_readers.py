@@ -31,6 +31,7 @@ class ClaudeTranscripts(unittest.TestCase):
             self.assertAlmostEqual(rows[0]["tps_out"] / rows[0]["tps_sec"], 50, places=0)  # 200 tokens over 4s
             session = t.session(str(path))
             self.assertEqual((session["model"], session["ctx_tokens"]), ("claude-opus-5-5", 1010))
+            self.assertEqual(t.metrics(now - 3600), [4.0])
             self.assertGreater(last_hour, 0)
             # appending a new line is picked up without re-reading the file
             with open(path, "a") as f:
@@ -89,6 +90,10 @@ class OpenCodeDb(unittest.TestCase):
             cards, rows, hours, last_hour = OpenCode(db).read(now, now - 3600)
             self.assertEqual((rows[0]["output"], rows[0]["cache_read"], round(rows[0]["cost"], 2)), (100, 900, 0.05))
             self.assertAlmostEqual(rows[0]["tps_out"] / rows[0]["tps_sec"], 50)  # 100 tokens over 2s
+            self.assertEqual(OpenCode(db).metrics(now - 3600), [])  # a fresh reader has not synced yet
+            oc = OpenCode(db)
+            oc.read(now, now - 3600)
+            self.assertEqual(oc.metrics(now - 3600), [2.0])
             card = cards[0]
             self.assertEqual((card["name"], card["state"], card["prompts"], card["lines"]), ("app", "done", 1, [12, 3]))
             self.assertAlmostEqual(last_hour, 0.05)

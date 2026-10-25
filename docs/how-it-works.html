@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How agent-status works</title>
+<style>
+  :root{
+    --bg:#06080b; --panel:#0c1119; --line:#1e2838; --text:#e8eef8; --muted:#8593a8;
+    --blue:#5ea1ff; --amber:#ffb547; --green:#3ddc97; --violet:#a78bfa; --red:#ff6b7a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:900px;height:380px;overflow:hidden;background:var(--bg);color:var(--text);
+    font:14px/1.4 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif}
+  .stage{position:relative;width:900px;height:380px;padding:24px 32px;overflow:hidden}
+  .title{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11px;font-weight:700;
+    letter-spacing:.15em;text-transform:uppercase}
+  .title img{width:26px;height:26px;border-radius:8px}
+  .title b{color:var(--text);letter-spacing:.02em;font-size:13px;text-transform:none;font-weight:650}
+  .col-label{position:absolute;top:78px;color:var(--muted);font-size:10px;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase}
+  .agents{position:absolute;left:32px;top:100px;width:212px;display:flex;flex-direction:column;gap:12px}
+  .agent{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;padding:11px 12px;animation:breathe 3.2s ease-in-out infinite}
+  .agent:nth-child(2){animation-delay:.5s}.agent:nth-child(3){animation-delay:1s}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor;background:currentColor}
+  .dot.amber{color:var(--amber)}.dot.green{color:var(--green)}.dot.blue{color:var(--blue)}.dot.violet{color:var(--violet)}
+  .agent b{display:block;font-size:13px;font-weight:650}
+  .agent small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+  .agent .pulse{margin-left:auto;width:5px;height:22px;border-radius:5px;background:var(--line);
+    animation:bar 1.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{border-color:var(--line)}50%{border-color:#2d3d58}}
+  @keyframes bar{0%,100%{opacity:.25}50%{opacity:1;background:var(--blue)}}
+
+  .state{position:absolute;left:344px;top:100px;width:214px;display:flex;flex-direction:column;gap:9px}
+  .file{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+    display:flex;align-items:center;gap:9px;animation:breathe 3.2s ease-in-out infinite}
+  .file:nth-child(2){animation-delay:.4s}.file:nth-child(3){animation-delay:.8s}
+  .file .dot{width:7px;height:7px}
+  .file b{font-size:11.5px;font-weight:600;letter-spacing:.01em}
+  .file small{margin-left:auto;color:var(--muted);font-size:10.5px;white-space:nowrap}
+  .file::after{content:"";position:absolute;inset:0;border-radius:12px;border:1px solid transparent;
+    animation:arrive 2.4s ease-in-out infinite}
+  .file:nth-child(2)::after{animation-delay:.8s}.file:nth-child(3)::after{animation-delay:1.6s}
+  @keyframes arrive{0%,100%{border-color:transparent}45%{border-color:#2f4f7a}}
+
+  .wire{position:absolute;height:2px;border-radius:2px;background:linear-gradient(90deg,#26344a,#3a5c8a)}
+  .w1{left:252px;top:132px;width:82px}.w2{left:566px;top:132px;width:56px}
+  .wire i{position:absolute;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--blue);
+    box-shadow:0 0 12px var(--blue);animation:move 2.4s linear infinite}
+  .wire i:nth-child(2){animation-delay:1.2s}
+  @keyframes move{0%{left:-8px;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:100%;opacity:0}}
+  .wire-label{position:absolute;top:108px;color:var(--muted);font-size:9.5px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+
+  .dash{position:absolute;left:632px;top:96px;width:236px}
+  .dash-h{display:flex;justify-content:space-between;align-items:baseline;color:var(--muted);
+    font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .card{position:relative;height:186px;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;animation:cardGlow 8s ease-in-out infinite}
+  .card .state{position:absolute;inset:0;width:auto;display:block;padding:14px}
+  .card .waiting{animation:waiting 8s steps(1,end) infinite}
+  .card .working{animation:working 8s steps(1,end) infinite}
+  .row{display:flex;align-items:center;gap:8px}
+  .row b{font-size:16px;font-weight:650}.row em{margin-left:auto;font-style:normal;font-size:9px;font-weight:800;
+    letter-spacing:.09em;color:var(--amber)}
+  .working .row em{color:var(--green)}
+  .sub{color:var(--muted);font-size:11px;margin-top:2px}
+  .detail{font-size:12.5px;margin-top:12px;color:#cfd9e9}
+  .ask{margin-top:8px;padding:8px 9px;border-radius:8px;background:#121a27;border:1px solid #202c3f;
+    font:11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;color:#b9c6da}
+  .buttons{display:flex;gap:8px;margin-top:12px}
+  .buttons button{border:0;border-radius:9px;padding:8px 18px;font:700 12px/1 inherit;color:#07120c;
+    background:var(--green);animation:allow 8s ease-in-out infinite}
+  .buttons button:last-child{background:transparent;color:var(--red);border:1px solid #5b2730}
+  @keyframes allow{0%,44%{box-shadow:0 0 0 0 rgba(61,220,151,0)}52%{box-shadow:0 0 0 6px rgba(61,220,151,.18)}
+    60%,100%{box-shadow:0 0 0 0 rgba(61,220,151,0)}}
+  .ok{margin-top:16px;color:var(--green);font-size:12px;font-weight:650}
+  .mini{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:11px;color:var(--muted);font-size:11px}
+  .mini b{color:var(--text);font-weight:650}.mini span{margin-left:auto;color:var(--blue)}
+
+  .cursor{position:absolute;left:0;top:0;z-index:9;width:20px;height:20px;pointer-events:none;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.65));animation:cursor 8s ease-in-out infinite}
+  .cursor path{fill:#fff;stroke:#0b0f16;stroke-width:1.5}
+  .ripple{position:absolute;left:688px;top:252px;width:18px;height:18px;border:2px solid var(--green);
+    border-radius:50%;opacity:0;z-index:8;animation:ripple 8s ease-out infinite}
+  .toast{display:none}
+
+  @keyframes cursor{
+    0%,30%{transform:translate(806px,330px);opacity:0}
+    38%{opacity:1}
+    49%{transform:translate(700px,286px)}
+    58%{transform:translate(700px,286px);opacity:1}
+    68%,100%{transform:translate(806px,330px);opacity:0}
+  }
+  @keyframes ripple{0%,49%{opacity:0;transform:scale(.2)}53%{opacity:1}63%{opacity:0;transform:scale(2.4)}100%{opacity:0}}
+  @keyframes waiting{0%,54%{opacity:1}55%,100%{opacity:0}}
+  @keyframes working{0%,54%{opacity:0}55%,100%{opacity:1}}
+  @keyframes cardGlow{0%,52%{border-color:var(--line);box-shadow:none}56%{border-color:#2b6047;box-shadow:0 0 24px rgba(61,220,151,.12)}
+    70%,100%{border-color:var(--line);box-shadow:none}}
+
+  .foot{position:absolute;left:32px;bottom:16px;color:var(--muted);font-size:10.5px}
+  .foot b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="title"><img src="logo.png" alt=""><b>agent-status</b><span>· how it works</span></div>
+
+  <div class="col-label" style="left:32px">Agents</div>
+  <div class="agents">
+    <div class="agent"><i class="dot amber"></i><div><b>Claude Code</b><small>checkout · working</small></div><span class="pulse"></span></div>
+    <div class="agent"><i class="dot blue"></i><div><b>opencode</b><small>dashboard · working</small></div><span class="pulse"></span></div>
+    <div class="agent"><i class="dot green"></i><div><b>Codex CLI</b><small>api · needs you</small></div><span class="pulse"></span></div>
+  </div>
+
+  <div class="col-label" style="left:344px">Session state</div>
+  <div class="state">
+    <div class="file"><i class="dot amber"></i><b>claude-3f9c.json</b><small>working</small></div>
+    <div class="file"><i class="dot blue"></i><b>oc-17ab.json</b><small>working</small></div>
+    <div class="file"><i class="dot green"></i><b>codex-api.json</b><small>waiting</small></div>
+  </div>
+
+  <div class="wire w1"><i></i><i></i></div>
+  <div class="wire w2"><i></i><i></i></div>
+  <div class="wire-label" style="left:252px">hooks</div>
+  <div class="wire-label" style="left:578px">poll 2s</div>
+
+  <div class="col-label" style="left:632px">Dashboard</div>
+  <div class="dash">
+    <div class="dash-h"><span>Agents</span><span>3 sessions</span></div>
+    <div class="card">
+      <div class="state waiting">
+        <div class="row"><i class="dot green"></i><b>api</b><em>NEEDS YOU</em></div>
+        <div class="sub">Codex CLI · gpt-6-sol</div>
+        <div class="detail">Approve Bash</div>
+        <div class="ask">Bash: git push --force-with-lease</div>
+        <div class="buttons"><button>Allow</button><button>Deny</button></div>
+      </div>
+      <div class="state working">
+        <div class="row"><i class="dot green"></i><b>api</b><em>WORKING</em></div>
+        <div class="sub">Codex CLI · gpt-6-sol</div>
+        <div class="detail">Allowed from dashboard</div>
+        <div class="ok">✓ approved · continuing</div>
+      </div>
+    </div>
+    <div class="mini"><b>checkout</b> · working <span>57 tok/s</span></div>
+  </div>
+
+  <svg class="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 2l16 9-7 1.6L8.6 20z"/></svg>
+  <div class="ripple"></div>
+  <div class="foot"><b>hooks</b> → one JSON file per session → <b>live dashboard</b>. No prompts or file contents leave the machine.</div>
+</div>
+</body>
+</html>

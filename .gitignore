@@ -4,3 +4,4 @@ build/
 dist/
 .venv/
 .boost/
+docs/.gif-frames/

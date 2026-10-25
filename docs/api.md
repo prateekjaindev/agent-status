@@ -18,6 +18,7 @@ the version and update this page. Any change to the keys or types must also upda
 | `agents` | array of [cards](#cards) | — | Live sessions from hooks, opencode and the process table. |
 | `limits` | array of [limit groups](#limits) | — | Plan windows, from Codex logs and Omarchy's usage files. |
 | `week` | array of [days](#week) | — | Up to seven days of activity from Omarchy; empty without it. |
+| `perf` | [performance object](#performance) | — | Latency, throughput, cache and session health for today. |
 | `today` | [today object](#today) | — | Today's token, cost and hourly usage. |
 
 ## Cards
@@ -78,6 +79,24 @@ Up to seven entries, oldest first, from Omarchy's usage files. Without Omarchy t
 |---|---|---|
 | `date` | string | Local date, `YYYY-MM-DD`. |
 | `agents` | object | Maps an agent display name to Omarchy's `messageCount` for that day. |
+
+## Performance
+
+Built from today's responses and live cards. Percentiles are `null` until there is a sample.
+
+| Key | Type | Unit | Description |
+|---|---|---|---|
+| `latency_p50`, `latency_p95` | number or null | seconds | Turn duration from prompt/tool result to finished response, from Claude transcripts and opencode messages. |
+| `latency_n` | integer | turns | How many durations the percentiles use. |
+| `tps_p50`, `tps_p95` | number or null | output tokens/second | Throughput across model rows. |
+| `tps_n` | integer | rows | How many model rows the throughput uses. |
+| `cache_hit` | number or null | fraction | `cache_read / (input + cache_read)`; `0`–`1`, or null with no tokens. |
+| `cache_saved` | number | USD | Estimated saving from cache reads versus paying the input rate for those tokens. |
+| `cost_per_prompt` | number or null | USD | Today's API-equivalent cost divided by prompts seen in live cards. |
+| `stalled` | integer | sessions | Working sessions whose state has not changed for 30 minutes. |
+| `context_high` | integer | sessions | Sessions at 80% or more of their model's context window. |
+| `waiting` | integer | sessions | Sessions waiting for an approval. |
+| `oldest_wait` | number | seconds | Age of the longest current wait, or `0`. |
 
 ## Today
 
