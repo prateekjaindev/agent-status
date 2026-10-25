@@ -14,6 +14,7 @@ the version and update this page. Any change to the keys or types must also upda
 | `schema` | integer | — | Contract version. Currently `1`. |
 | `now` | number | seconds | Unix time when the snapshot was built. |
 | `interval` | number | seconds | How often the collector refreshes; default `2`. |
+| `prices_as_of` | string | date | Date of the bundled price table (`YYYY-MM-DD`). Override prices in `~/.config/agent-status/prices.json`. |
 | `agents` | array of [cards](#cards) | — | Live sessions from hooks, opencode and the process table. |
 | `limits` | array of [limit groups](#limits) | — | Plan windows, from Codex logs and Omarchy's usage files. |
 | `week` | array of [days](#week) | — | Up to seven days of activity from Omarchy; empty without it. |
@@ -121,6 +122,9 @@ Each model row:
 | `estimated` | boolean | — | True when the cost came from the local price table. |
 | `tps` | number or null | output tokens/second | Throughput, or null when it cannot be measured. |
 | `total` | integer | tokens | `input + output + cache_read + cache_write`. |
+
+Prices come from `agent_status/prices.json`, dated by `prices_as_of`. A `~/.config/agent-status/prices.json` with the
+same shape (only the models you want to change) is merged on top; a model with no entry has `cost: null`.
 
 ## Access
 

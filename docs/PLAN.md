@@ -23,7 +23,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 | T07 | Demo mode for screenshots | 1 Release | S | done | T06 |
 | T08 | Single-source version, CHANGELOG, PyPI release workflow | 1 Release | M | done | T02 |
 | T09 | AUR package and Homebrew tap | 1 Release | M | todo, **needs a human** | T08 |
-| T10 | Price tables as dated data, plus OpenAI prices | 2 Data | M | todo | |
+| T10 | Price tables as dated data, plus OpenAI prices | 2 Data | M | done | |
 | T11 | Usage history in SQLite (replaces Omarchy for history) | 2 Data | L | todo | T06 |
 | T12 | Budgets and limit alerts | 2 Data | M | todo | T11 |
 | T13 | Codex tokens/sec | 2 Data | S | todo | |
@@ -50,8 +50,9 @@ Working and verified on Linux (Omarchy, Python 3.14) with an iPad on the LAN:
 - **Machine stats on Linux:** CPU, GPU (NVIDIA and AMD), memory, network, disks, batteries.
 - **API:** `/status` carries `schema: 1`, its full shape is documented in [`docs/api.md`](api.md), and a contract test builds a snapshot from fixtures.
 - **Demo mode:** `agent-status serve --demo` serves five fictional sessions with moving sparklines; the README screenshots come from it and the contract test checks it.
+- **Prices:** `agent_status/prices.json` is a dated table (Claude and OpenAI), shown in the Models panel; `~/.config/agent-status/prices.json` overrides individual models.
 - **Packaging:** the version lives only in `agent_status/__init__.py`, a wheel builds from it, and a tagged release workflow publishes to PyPI once the owner configures trusted publishing.
-- **Installer and tests:** the interactive installer works, 65 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
+- **Installer and tests:** the interactive installer works, 67 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
 
 Built from documentation but **not yet run against the real thing**:
 

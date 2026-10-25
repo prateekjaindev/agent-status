@@ -12,6 +12,7 @@ serves a live dashboard to a tablet or phone on the LAN. **Picking up work or pl
 | `agent_status/hooks.py` | `agent-status hook <agent>`: normalize any agent's payload to Claude Code's shape, fold it in `next_state()`, and for Allow/Deny wait on `decisions/` |
 | `agent_status/collect.py` | `Collector.tick()`: builds the snapshot every `INTERVAL` seconds in a thread; HTTP serves the cached JSON |
 | `agent_status/claude.py`, `codex.py`, `opencode.py`, `omarchy.py` | readers for each agent's own data |
+| `agent_status/prices.json` | dated $/MTok table; `~/.config/agent-status/prices.json` overrides it |
 | `agent_status/procs.py`, `system.py`, `gitinfo.py` | process table, machine stats (Linux `/proc`+`/sys`, macOS commands), git status |
 | `agent_status/server.py` | static files, `GET /status`, `POST /decide` |
 | `agent_status/install.py` | interactive install/uninstall, `doctor`, systemd or launchd service |

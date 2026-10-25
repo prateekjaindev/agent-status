@@ -2,7 +2,7 @@
 import json, math, time
 from datetime import datetime, timedelta
 
-from .usage import finish_rows, new_row
+from .usage import PRICES_AS_OF, finish_rows, new_row
 
 
 def _iso(ts):
@@ -22,7 +22,8 @@ def _rows():
     rows.append(claude)
 
     codex = new_row("Codex", "gpt-6-sol")
-    codex.update(input=96_000, output=8_400, cache_read=240_000, priced=False, tps_out=8_400, tps_sec=195)
+    codex.update(input=96_000, output=8_400, cache_read=240_000, cost=0.30, estimated=True,
+                 tps_out=8_400, tps_sec=195)
     rows.append(codex)
 
     oc = new_row("opencode", "deepseek-v4")
@@ -112,7 +113,7 @@ def snapshot(now=None):
             tx=_wave(60, 180_000, 50_000, 5, phase, 0)),
     )
 
-    return dict(schema=1, now=now, interval=2, agents=cards, limits=limits, week=week,
+    return dict(schema=1, now=now, interval=2, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week,
                 system=system, today=today_usage)
 
 

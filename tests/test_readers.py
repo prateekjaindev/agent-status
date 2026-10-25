@@ -56,8 +56,11 @@ class CodexLogs(unittest.TestCase):
             path.write_text("".join(json.dumps(l) + "\n" for l in lines))
             c = CodexSessions(d)
             c.scan(now - 3600)
-            rows, _ = c.usage(now - 3600)
+            rows, _, last_hour = c.usage(now - 3600, now)
             self.assertEqual((rows[0]["model"], rows[0]["output"], rows[0]["cache_read"]), ("gpt-6-sol", 300, 2000))
+            self.assertAlmostEqual(rows[0]["cost"], (1000 * 2 + 300 * 10 + 2000 * 0.10) / 1e6)
+            self.assertTrue(rows[0]["estimated"])
+            self.assertGreater(last_hour, 0)
             self.assertEqual(c.session(str(path))["ctx"], 0.02)
             limits = c.limits(now)[0]
             self.assertEqual((limits["tier"], limits["limits"][0]["label"], limits["limits"][0]["pct"]), ("Plus", "5-hour", 0.64))

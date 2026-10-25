@@ -1,38 +1,66 @@
-"""Token maths shared by the collectors: prices, cost, tokens/sec, context windows, usage rows."""
-import re
+"""Token maths shared by the collectors: prices, cost, tokens/sec, context windows, usage rows.
 
-# $/MTok: input, output, cache read. Cache writes bill 1.25x input (5-minute TTL) or 2x (1-hour TTL).
-# Source: Anthropic first-party API pricing. Longest matching prefix wins, so suffixes like "[1m]" still match.
-PRICES = {
-    "claude-fable-5-1": (10, 50, 0.25),
-    "claude-fable-5": (10, 50, 1.00),
-    "claude-opus-5-5": (4, 20, 0.20),
-    "claude-opus-5": (5, 25, 0.50),
-    "claude-opus-4-8": (5, 25, 0.50),
-    "claude-opus-4-7": (5, 25, 0.50),
-    "claude-opus-4-6": (5, 25, 0.50),
-    "claude-sonnet-5-5": (2, 10, 0.20),
-    "claude-sonnet-5": (2, 10, 0.20),
-    "claude-sonnet-4-6": (3, 15, 0.30),
-    "claude-haiku-5-5": (0.10, 0.50, 0.01),
-    "claude-haiku-4-5": (1, 5, 0.10),
-}
+Prices are dated data in prices.json. A file at ~/.config/agent-status/prices.json can override models.
+"""
+import json, re
+from pathlib import Path
+
+from .config import USER_CONFIG
+
+PRICES_FILE = Path(__file__).with_name("prices.json")
+PRICES_OVERRIDE = USER_CONFIG.parent / "prices.json"
 
 
-def price_for(model):
-    best = max((k for k in PRICES if (model or "").startswith(k)), key=len, default=None)
-    return PRICES.get(best)
+def _read_json(path):
+    try:
+        return json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return {}
 
 
-def claude_cost(model, u):
-    """API-equivalent dollars for one Claude response's usage block, or None for unknown models."""
-    p = price_for(model)
+def load_prices(override=PRICES_OVERRIDE):
+    """The bundled table with the user's per-model overrides merged on top."""
+    base, user = _read_json(PRICES_FILE), _read_json(override)
+    return dict(as_of=user.get("as_of") or base.get("as_of") or "",
+                source=user.get("source") or base.get("source") or "",
+                models={**(base.get("models") or {}), **(user.get("models") or {})})
+
+
+_loaded = load_prices()
+PRICES, PRICES_AS_OF, PRICES_SOURCE = _loaded["models"], _loaded["as_of"], _loaded["source"]
+
+
+def price_for(model, prices=None):
+    """The longest matching model prefix, or None when the model has no price."""
+    prices = PRICES if prices is None else prices
+    best = max((k for k in prices if (model or "").startswith(k)), key=len, default=None)
+    return prices.get(best)
+
+
+def token_cost(model, input_tokens, output_tokens, cache_read=0, cache_write_5m=0, cache_write_1h=0, prices=None):
+    """USD for token counts at $/MTok; None for an unknown model. Cache writes default to 1.25x/2x input."""
+    p = price_for(model, prices)
     if not p:
         return None
+    in_rate = p["in"]
+    return (input_tokens * in_rate + output_tokens * p["out"] + cache_read * p["cache_read"]
+            + cache_write_5m * p.get("cache_write_5m", in_rate * 1.25)
+            + cache_write_1h * p.get("cache_write_1h", in_rate * 2)) / 1e6
+
+
+def claude_cost(model, u, prices=None):
+    """API-equivalent dollars for one Claude response's usage block, or None for unknown models."""
     w1h = (u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens") or 0
     w5m = (u.get("cache_creation_input_tokens") or 0) - w1h
-    return ((u.get("input_tokens") or 0) * p[0] + (u.get("output_tokens") or 0) * p[1]
-            + (u.get("cache_read_input_tokens") or 0) * p[2] + w5m * p[0] * 1.25 + w1h * p[0] * 2) / 1e6
+    return token_cost(model, u.get("input_tokens") or 0, u.get("output_tokens") or 0,
+                      u.get("cache_read_input_tokens") or 0, w5m, w1h, prices)
+
+
+def codex_cost(model, d, prices=None):
+    """OpenAI counts cached tokens inside input_tokens; Codex's deltas split them."""
+    cached = d.get("cached_input_tokens") or 0
+    return token_cost(model, max((d.get("input_tokens") or 0) - cached, 0), d.get("output_tokens") or 0,
+                      cached, prices=prices)
 
 
 def context_window(model):

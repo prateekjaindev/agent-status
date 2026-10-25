@@ -12,7 +12,7 @@ from .hooks import read_json
 from .opencode import OpenCode
 from .procs import ProcTable, label
 from .system import System
-from .usage import finish_rows
+from .usage import PRICES_AS_OF, finish_rows
 
 STALE = 6 * 3600  # hook records without a known pid are dropped after this long
 TMP_STALE = 60  # a hook killed mid-write leaves a *.tmp younger than any real write
@@ -115,8 +115,8 @@ class Collector:
             r, h, b = self.claude.usage(since, now)
             rows, hours, burn = rows + r, hours + [h], burn + b
         if on("codex"):
-            r, h = self.codex.usage(since)
-            rows, hours = rows + r, hours + [h]
+            r, h, b = self.codex.usage(since, now)
+            rows, hours, burn = rows + r, hours + [h], burn + b
         if on("opencode"):
             c, r, h, b = self.oc.read(now, since)
             cards, rows, hours, burn = cards + c, rows + r, hours + [h], burn + b
@@ -130,7 +130,7 @@ class Collector:
         limits += [l for l in om_limits if l["name"] not in have]
         rows = finish_rows(rows + om_rows)
         snapshot = dict(
-            schema=1, now=now, interval=INTERVAL, agents=cards, limits=limits, week=week, system=self.system.sample(now),
+            schema=1, now=now, interval=INTERVAL, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week, system=self.system.sample(now),
             today=dict(cost=sum(r["cost"] or 0 for r in rows), tokens=sum(r["total"] for r in rows),
                        output=sum(r["output"] for r in rows), burn=burn,
                        hours=add_hours(*hours) if hours else [[0, 0]] * 24, models=rows))

@@ -247,6 +247,7 @@ $("cards").addEventListener("click", async (e) => {
 // ---------- usage ----------
 function renderToday(d) {
   const t = d.today;
+  $("models-note").textContent = d.prices_as_of ? `today · prices ${d.prices_as_of}` : "today";
   setHTML($("today-cost"), t.cost ? `<small>≈</small>$${t.cost.toFixed(2)}` : "$0");
   setHTML($("today-sub"), `<span><b>${num(t.tokens)}</b> tokens</span><span><b>${num(t.output)}</b> output</span>${t.burn ? `<span><b>${usd(t.burn)}</b>/hour</span>` : ""}`);
   const hourNow = new Date().getHours(), max = Math.max(...t.hours.map((h) => h[0]), 1);

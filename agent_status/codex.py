@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .claude import parse_ts
 from .config import HOME
-from .usage import new_row
+from .usage import codex_cost, new_row
 
 KEYS = ("input_tokens", "cached_input_tokens", "output_tokens")
 WINDOWS = {300: "5-hour", 10080: "Weekly", 43200: "Monthly"}
@@ -67,19 +67,28 @@ class CodexSessions:
         ctx = f["last"].get("input_tokens") or 0  # OpenAI counts cached tokens inside input_tokens
         return dict(model=f["model"], ctx_tokens=ctx, ctx=ctx / f["window"] if f["window"] else None)
 
-    def usage(self, since):
-        rows, hours = {}, [[0, 0.0] for _ in range(24)]
+    def usage(self, since, now):
+        rows, hours, last_hour = {}, [[0, 0.0] for _ in range(24)], 0.0
         for f in self.files.values():
             for ts, model, d in f["events"]:
                 if ts < since:
                     continue
                 r = rows.setdefault(model, new_row("Codex", model))
-                r["priced"] = False  # shortcut: no reliable per-token prices for Codex models yet
+                cost = codex_cost(model, d)
+                if cost is None:
+                    r["priced"] = False
+                else:
+                    r["estimated"] = True
+                    r["cost"] += cost
+                    if now - ts < 3600:
+                        last_hour += cost
                 r["input"] += d["input_tokens"] - d["cached_input_tokens"]
                 r["cache_read"] += d["cached_input_tokens"]
                 r["output"] += d["output_tokens"]
-                hours[datetime.fromtimestamp(ts).hour][0] += d["input_tokens"] + d["output_tokens"]
-        return list(rows.values()), hours
+                h = hours[datetime.fromtimestamp(ts).hour]
+                h[0] += d["input_tokens"] + d["output_tokens"]
+                h[1] += cost or 0
+        return list(rows.values()), hours, last_hour
 
     def limits(self, now):
         if not self.rate:

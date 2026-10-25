@@ -36,4 +36,4 @@ include = ["agent_status*"]
 version = {attr = "agent_status.__version__"}
 
 [tool.setuptools.package-data]
-agent_status = ["web/*"]
+agent_status = ["web/*", "prices.json"]

@@ -11,6 +11,8 @@ First release.
 
 - A live dashboard for the tablet or phone on your desk: agent cards, needs-you alerts and machine stats, served from one
   Python process with no runtime dependencies.
+- A dated price table (`agent_status/prices.json`) for Claude and OpenAI/Codex models, with a per-model override in
+  `~/.config/agent-status/prices.json`; the Models panel shows the table's date.
 - Hook support for Claude Code, Codex CLI, Cursor CLI, Gemini CLI and GitHub Copilot CLI, with normalized lifecycle events
   and a session state file per agent.
 - Allow/Deny from the dashboard for Claude Code and Codex permission prompts, with a live per-prompt token, a 60-second
