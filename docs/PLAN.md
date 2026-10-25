@@ -21,7 +21,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 | T05 | Real-device and live-agent verification | 0 Stabilize | M | todo, **needs a human** | T01 |
 | T06 | `/status` JSON contract: schema doc and version field | 1 Release | S | done | |
 | T07 | Demo mode for screenshots | 1 Release | S | done | T06 |
-| T08 | Single-source version, CHANGELOG, PyPI release workflow | 1 Release | M | todo | T02 |
+| T08 | Single-source version, CHANGELOG, PyPI release workflow | 1 Release | M | done | T02 |
 | T09 | AUR package and Homebrew tap | 1 Release | M | todo, **needs a human** | T08 |
 | T10 | Price tables as dated data, plus OpenAI prices | 2 Data | M | todo | |
 | T11 | Usage history in SQLite (replaces Omarchy for history) | 2 Data | L | todo | T06 |
@@ -50,6 +50,7 @@ Working and verified on Linux (Omarchy, Python 3.14) with an iPad on the LAN:
 - **Machine stats on Linux:** CPU, GPU (NVIDIA and AMD), memory, network, disks, batteries.
 - **API:** `/status` carries `schema: 1`, its full shape is documented in [`docs/api.md`](api.md), and a contract test builds a snapshot from fixtures.
 - **Demo mode:** `agent-status serve --demo` serves five fictional sessions with moving sparklines; the README screenshots come from it and the contract test checks it.
+- **Packaging:** the version lives only in `agent_status/__init__.py`, a wheel builds from it, and a tagged release workflow publishes to PyPI once the owner configures trusted publishing.
 - **Installer and tests:** the interactive installer works, 65 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
 
 Built from documentation but **not yet run against the real thing**:
@@ -65,7 +66,7 @@ Built from documentation but **not yet run against the real thing**:
 - **No history without Omarchy:** the 7-day chart and plan limits other than Codex come only from Omarchy's files, so the panel is empty on other distros until T11.
 - **Approximate tokens/sec:** tok/s includes time to first token. Claude's start time is the preceding `user` line, so a slow tool result that lands right before a response can skew it.
 - **Copilot approvals are deliberately off:** Copilot's `permissionRequest` fires before its own allow rules, so waiting there would stall calls that never needed the user (see `DECIDES` in `hooks.py`).
-- **Version in two places:** `pyproject.toml` and `agent_status/__init__.py` (T08).
+- **PyPI trusted publisher is not configured yet:** `release.yml` builds and checks the tag, but the first `v*` tag fails at publish until the owner adds the pending trusted publisher (`docs/release.md`).
 
 ---
 

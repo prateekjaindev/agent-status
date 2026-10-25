@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-status"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A live dashboard of your AI coding agents (Claude Code, Codex, Cursor, Gemini, Copilot, opencode, ...) for a tablet or phone on your desk"
 readme = "README.md"
 license = "MIT"
@@ -31,6 +31,9 @@ Issues = "https://github.com/prateekjaindev/agent-status/issues"
 
 [tool.setuptools.packages.find]
 include = ["agent_status*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "agent_status.__version__"}
 
 [tool.setuptools.package-data]
 agent_status = ["web/*"]
