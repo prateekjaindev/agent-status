@@ -26,8 +26,8 @@ const path = require("path");
   await browser.close();
   const out = path.join(root, "docs/how-it-works.gif");
   execFileSync("ffmpeg", ["-y", "-framerate", "10", "-i", path.join(frames, "f%03d.png"),
-    "-vf", "scale=900:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3",
-    "-loop", "0", out], { stdio: "inherit" });
+    "-vf", "scale=900:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=64:stats_mode=diff[p];[s1][p]paletteuse=dither=none",
+    "-gifflags", "0", "-loop", "0", out], { stdio: "inherit" });
   fs.rmSync(frames, { recursive: true, force: true });
   console.log(`wrote ${out}`);
 })();

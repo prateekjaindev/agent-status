@@ -58,8 +58,8 @@
   .card{position:relative;height:186px;background:var(--panel);border:1px solid var(--line);border-radius:16px;
     overflow:hidden;animation:cardGlow 8s ease-in-out infinite}
   .card .state{position:absolute;inset:0;width:auto;display:block;padding:14px}
-  .card .waiting{animation:waiting 8s steps(1,end) infinite}
-  .card .working{animation:working 8s steps(1,end) infinite}
+  .card .waiting{animation:waiting 8s linear infinite}
+  .card .working{animation:working 8s linear infinite}
   .row{display:flex;align-items:center;gap:8px}
   .row b{font-size:16px;font-weight:650}.row em{margin-left:auto;font-style:normal;font-size:9px;font-weight:800;
     letter-spacing:.09em;color:var(--amber)}
@@ -90,12 +90,12 @@
     0%,30%{transform:translate(806px,330px);opacity:0}
     38%{opacity:1}
     49%{transform:translate(700px,286px)}
-    58%{transform:translate(700px,286px);opacity:1}
-    68%,100%{transform:translate(806px,330px);opacity:0}
+    55%{transform:translate(700px,286px);opacity:1}
+    62%,100%{transform:translate(760px,330px);opacity:0}
   }
   @keyframes ripple{0%,49%{opacity:0;transform:scale(.2)}53%{opacity:1}63%{opacity:0;transform:scale(2.4)}100%{opacity:0}}
-  @keyframes waiting{0%,54%{opacity:1}55%,100%{opacity:0}}
-  @keyframes working{0%,54%{opacity:0}55%,100%{opacity:1}}
+  @keyframes waiting{0%,54%{opacity:1}58%,86%{opacity:0}92%,100%{opacity:1}}
+  @keyframes working{0%,54%{opacity:0}58%,86%{opacity:1}92%,100%{opacity:0}}
   @keyframes cardGlow{0%,52%{border-color:var(--line);box-shadow:none}56%{border-color:#2b6047;box-shadow:0 0 24px rgba(61,220,151,.12)}
     70%,100%{border-color:var(--line);box-shadow:none}}
 
