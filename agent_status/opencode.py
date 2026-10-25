@@ -68,6 +68,11 @@ class OpenCode:
         finally:
             con.close()
 
+    def metrics(self, since):
+        """Turn durations in seconds for opencode messages created today."""
+        return [v[7] / 1000 for v in self.msgs.values()
+                if v[0] >= since * 1000 and v[7] and 0 < v[7] < 900_000]
+
     def cards(self, con, now):
         cards, live = [], {}
         for sid, directory, title, add, rem, updated in con.execute(

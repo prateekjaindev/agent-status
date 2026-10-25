@@ -16,7 +16,10 @@
 </head>
 <body>
 <header class="top">
-  <div class="clock"><div id="time">--:--</div><div id="date"></div></div>
+  <div class="brand">
+    <img class="logo" src="icon-192.png" alt="agent-status">
+    <div class="clock"><div id="time">--:--</div><div id="date"></div></div>
+  </div>
   <div id="pills" class="pills"></div>
   <div class="top-right">
     <button id="wake" class="iconbtn" type="button" aria-label="Keep screen on" hidden></button>
@@ -38,6 +41,10 @@
         <p>No agents running</p>
         <span>Start Claude Code, Cursor or opencode and they'll show up here.</span>
       </div>
+    </section>
+    <section class="block" id="perf-panel">
+      <div class="block-h"><h2>Performance</h2><span class="muted small">today</span></div>
+      <div id="perf" class="perf"></div>
     </section>
   </main>
 

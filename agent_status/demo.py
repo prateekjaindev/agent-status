@@ -54,7 +54,7 @@ def snapshot(now=None):
              git=dict(branch="feature/checkout", files=3, add=42, rem=7)),
         dict(id="demo-codex", kind="Codex CLI", name="api", state="waiting", detail="Approve Bash",
              since=now - 35, started=now - 900, model="gpt-6-sol", prompts=2, tools=4,
-             ctx=0.64, ctx_tokens=160_000, ask="demo-ask-codex", ask_until=now + 45,
+             ctx=0.84, ctx_tokens=210_000, ask="demo-ask-codex", ask_until=now + 45,
              ask_text="Bash: git push --force-with-lease",
              git=dict(branch="main", files=1, add=6, rem=2)),
         dict(id="demo-opencode", kind="opencode", name="dashboard", state="working", detail="Fix login redirect",
@@ -89,9 +89,12 @@ def snapshot(now=None):
     today_usage = dict(cost=round(sum(r["cost"] or 0 for r in rows), 2),
                        tokens=sum(r["total"] for r in rows), output=sum(r["output"] for r in rows),
                        burn=0.42, hours=hours, models=rows)
+    perf = dict(latency_p50=4.2, latency_p95=18.6, latency_n=86, tps_p50=48.0, tps_p95=72.0, tps_n=24,
+                cache_hit=0.62, cache_saved=2.41, cost_per_prompt=0.19,
+                stalled=0, context_high=1, waiting=1, oldest_wait=35.0)
 
     return dict(schema=2, now=now, interval=2, prices_as_of=PRICES_AS_OF, agents=cards, limits=limits, week=week,
-                today=today_usage)
+                perf=perf, today=today_usage)
 
 
 class Demo:

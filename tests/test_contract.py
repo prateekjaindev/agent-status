@@ -59,11 +59,16 @@ LIMIT = {"name": text, "tier": Opt(text), "updated": Opt(text),
 ROW = {"agent": text, "model": text, "input": integer, "output": integer, "cache_read": integer,
        "cache_write": integer, "cost": Nullable(number), "estimated": boolean, "tps": Nullable(number),
        "total": integer}
+PERF = {"latency_p50": Nullable(number), "latency_p95": Nullable(number), "latency_n": integer,
+        "tps_p50": Nullable(number), "tps_p95": Nullable(number), "tps_n": integer,
+        "cache_hit": Nullable(number), "cache_saved": number, "cost_per_prompt": Nullable(number),
+        "stalled": integer, "context_high": integer, "waiting": integer, "oldest_wait": number}
 STATUS = {
     "schema": integer, "now": number, "interval": number, "prices_as_of": text,
     "agents": [CARD],
     "limits": [LIMIT],
     "week": [{"date": text, "agents": Map(integer)}],
+    "perf": PERF,
     "today": {"cost": number, "tokens": integer, "output": integer, "burn": number,
               "hours": [[number, number]], "models": [ROW]},
 }
@@ -122,6 +127,9 @@ class FakeClaude:
     def session(self, path):
         return dict(model="claude-opus-5-5", tps=50.0, ctx=0.01, ctx_tokens=1010, cost=0.02, estimated=True)
 
+    def metrics(self, since):
+        return [3.0, 5.0, 9.0]
+
     def usage(self, since, now):
         row = new_row("Claude Code", "claude-opus-5-5")
         row.update(input=10, output=200, cache_read=1000, cost=0.02, estimated=True, tps_out=200, tps_sec=4)
@@ -153,6 +161,9 @@ class FakeOpenCode:
                     detail="Fix login", since=now - 100, started=now - 500, model="deepseek-v4", tps=50.0,
                     ctx_tokens=1000, cost=0.05, prompts=1, lines=[12, 3])
         return [card], [row], [[100, 0.05] for _ in range(24)], 0.05
+
+    def metrics(self, since):
+        return [2.0, 4.0]
 
 
 class Contract(unittest.TestCase):
@@ -190,6 +201,8 @@ class Contract(unittest.TestCase):
         snap = self.snapshot()
         self.assertEqual(snap["schema"], 2)
         self.assertEqual(len(snap["today"]["hours"]), 24)
+        self.assertEqual(snap["perf"]["latency_n"], 5)
+        self.assertIsNotNone(snap["perf"]["cache_hit"])
         check(snap, STATUS, "status")
 
     def test_demo_snapshot_matches_the_contract(self):

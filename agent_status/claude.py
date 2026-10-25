@@ -102,3 +102,8 @@ class Transcripts:
                 h[0] += sum(u.get(k) or 0 for k in CTX_KEYS) + (u.get("output_tokens") or 0)
                 h[1] += cost or 0
         return list(rows.values()), hours, last_hour
+
+    def metrics(self, since):
+        """Turn durations in seconds for responses that finished today."""
+        return [r["end"] - r["start"] for f in self.files.values() for r in f["msgs"].values()
+                if r["end"] >= since and 0 < r["end"] - r["start"] < 900]

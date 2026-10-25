@@ -1,6 +1,12 @@
-# agent-status
+<p align="center">
+  <img src="docs/logo.png" width="112" alt="agent-status logo">
+</p>
+
+<h1 align="center">agent-status</h1>
 
 **A live dashboard of your AI coding agents, made for the tablet or phone on your desk.**
+
+> **Preview:** agent-status is under active development; the API and dashboard may change.
 
 Glance over and see which agents are working, which one is waiting for your approval, what it's doing right now, how fast tokens are flowing, and what today has cost. An old iPad or Android tablet becomes a status screen for Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, opencode and more.
 
@@ -8,6 +14,7 @@ Glance over and see which agents are working, which one is waiting for your appr
 - **Approve from the tablet**: Allow or Deny a Claude Code or Codex permission prompt with a tap, with the full command shown
 - **Per-session cards**: state, current tool, model, tokens/sec, context window use, session cost, prompts and tool calls, and git branch with `+added −removed` lines
 - **Today's usage**: tokens and cost per model, cost per hour, an hour-by-hour chart, plan limits (5-hour and weekly windows), and the last 7 days
+- **Performance**: turn latency p50/p95, throughput, cache hit rate and cache savings, cost per prompt, stalled sessions and context pressure
 - **No dependencies**: Python standard library only, one background service, and a web page that any browser on your network can open
 
 ![agent-status with five fictional agent sessions](docs/screenshot.png)
@@ -117,6 +124,10 @@ transcripts, opencode db, process table ──▶ agent-status serve (refreshes 
 - **Readers** parse transcripts and databases incrementally: only what was appended since the last refresh.
 - **Costs**: Claude and Codex costs are what the same tokens would cost on the API (subscriptions bill differently, so they're marked `≈`); opencode costs are what opencode itself recorded. Prices live in `agent_status/prices.json`, dated in the Models panel; override a model in `~/.config/agent-status/prices.json`. tok/s includes time to first token.
 
+<p align="center">
+  <img src="docs/how-it-works.gif" alt="Hooks write session state, the dashboard polls it, and Allow resumes the agent" width="760">
+</p>
+
 ## Development
 
 ```bash
@@ -129,10 +140,6 @@ python -m agent_status serve --demo # fictional sessions, for screenshots or a U
 **Adding an agent** is usually one entry in `agent_status/agents.py`: give it a key, the commands and config folders that show it's installed, and either a hook file format (`nested`, `flat` or `own_file`) or just process names. If its hook payload differs from Claude Code's, add an event map in `agent_status/hooks.py`.
 
 The frontend is plain HTML, CSS and JavaScript in `agent_status/web/`, with no build step.
-
-## Roadmap
-
-Planned work (usage history and budgets, push notifications, more agents' token data, remote machines, themes, packaging) is tracked task by task in [`docs/PLAN.md`](docs/PLAN.md), each with what "done" means. Pick one and open a PR; [`AGENTS.md`](AGENTS.md) has the conventions.
 
 ## License
 

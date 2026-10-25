@@ -210,6 +210,24 @@ $("cards").addEventListener("click", async (e) => {
   }
 });
 
+// ---------- performance ----------
+function renderPerf(d) {
+  if (!d.perf) { $("perf-panel").hidden = true; return; }
+  $("perf-panel").hidden = false;
+  const p = d.perf;
+  const secs = (v) => v == null ? "—" : v < 60 ? `${v.toFixed(1)}s` : `${(v / 60).toFixed(1)}m`;
+  const pct = (v) => v == null ? "—" : `${Math.round(v * 100)}%`;
+  const stat = (label, value, sub) => `<div class="stat"><span>${label}</span><b>${value}</b><small>${sub}</small></div>`;
+  setHTML($("perf"), [
+    stat("turn time", secs(p.latency_p50), p.latency_p95 == null ? "no turns yet" : `${secs(p.latency_p95)} p95 · ${p.latency_n} turns`),
+    stat("throughput", p.tps_p50 == null ? "—" : `${Math.round(p.tps_p50)} tok/s`, p.tps_p95 == null ? "no output yet" : `${Math.round(p.tps_p95)} p95`),
+    stat("cache hit", pct(p.cache_hit), p.cache_saved ? `≈$${p.cache_saved.toFixed(2)} saved` : "no cache yet"),
+    stat("cost / prompt", p.cost_per_prompt == null ? "—" : `$${p.cost_per_prompt.toFixed(2)}`, "API equivalent"),
+    stat("waiting", String(p.waiting), p.oldest_wait ? `oldest ${ago(p.oldest_wait)}` : "nobody waiting"),
+    stat("risks", String(p.stalled + p.context_high), `${p.stalled} stalled · ${p.context_high} near context limit`),
+  ].join(""));
+}
+
 // ---------- usage ----------
 function renderToday(d) {
   const t = d.today;
@@ -266,7 +284,7 @@ async function tick() {
     if (r.status === 403) throw new Error("bad key");
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
-    renderAgents(d); renderToday(d); renderLimits(d); renderWeek(d);
+    renderAgents(d); renderPerf(d); renderToday(d); renderLimits(d); renderWeek(d);
     failures = 0;
     $("offline").hidden = true;
     $("live").className = "live ok";
