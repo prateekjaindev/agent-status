@@ -5,7 +5,7 @@
   agent-status uninstall         remove every hook and the service
   agent-status agents            list supported agents and what was detected
   agent-status doctor            check that installed hooks match this version
-  agent-status serve             run the dashboard server in the foreground
+  agent-status serve [--demo]    run the dashboard server in the foreground (--demo: fictional data)
   agent-status url               print the dashboard links
   agent-status hook AGENT [EVENT]   (called by agent hooks; reads the event JSON on stdin)
 """
@@ -22,7 +22,7 @@ def main(argv=None):
         hook(argv[1] if len(argv) > 1 else "claude", argv[2] if len(argv) > 2 else None)
     elif cmd == "serve":
         from .server import serve
-        serve()
+        serve(demo="--demo" in argv[1:])
     elif cmd == "url":
         from .server import urls
         for url, what in urls():

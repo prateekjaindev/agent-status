@@ -3,7 +3,7 @@ import json, tempfile, time, unittest
 from pathlib import Path
 from unittest import mock
 
-from agent_status import collect
+from agent_status import collect, demo
 from agent_status.collect import Collector
 from agent_status.usage import new_row
 
@@ -217,6 +217,18 @@ class Contract(unittest.TestCase):
         self.assertEqual(snap["schema"], 1)
         self.assertEqual(len(snap["today"]["hours"]), 24)
         check(snap, STATUS, "status")
+
+    def test_demo_snapshot_matches_the_contract(self):
+        snap = json.loads(json.dumps(demo.snapshot(now=1_800_000_000)))
+        self.assertEqual(snap["schema"], 1)
+        self.assertEqual(len(snap["agents"]), 5)
+        self.assertEqual(len(snap["today"]["hours"]), 24)
+        check(snap, STATUS, "demo")
+
+    def test_demo_moves_between_requests(self):
+        a = demo.snapshot(now=1_800_000_000)
+        b = demo.snapshot(now=1_800_000_010)
+        self.assertNotEqual(a["system"]["hist"]["cpu"], b["system"]["hist"]["cpu"])
 
     def test_checker_catches_undocumented_and_missing_keys(self):
         snap = self.snapshot()

@@ -82,10 +82,11 @@ def handler(key, collector):
             if u.path == "/status":
                 if not self.authorized(u):
                     return self.send(403, "application/json", b'{"error":"bad key"}')
-                try:
-                    SEEN.touch()  # lets permission hooks know someone is watching
-                except OSError:
-                    pass
+                if getattr(collector, "demo", False) is not True:
+                    try:
+                        SEEN.touch()  # lets permission hooks know someone is watching
+                    except OSError:
+                        pass
                 return self.send(200, "application/json", collector.json)
             if u.path in STATIC:
                 name, ctype = STATIC[u.path]
@@ -122,10 +123,15 @@ def handler(key, collector):
     return Handler
 
 
-def serve():
-    from .collect import Collector
-    key, collector = token(), Collector()
-    collector.start()
+def serve(demo=False):
+    key = token()
+    if demo:
+        from .demo import Demo
+        collector = Demo()  # generated data; nothing on this machine is read
+    else:
+        from .collect import Collector
+        collector = Collector()
+        collector.start()
     for url, what in urls():
         print(f"agent-status: {url}  ({what})", flush=True)
     Server((HOST, PORT), handler(key, collector)).serve_forever()
