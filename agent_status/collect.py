@@ -130,7 +130,7 @@ class Collector:
         limits += [l for l in om_limits if l["name"] not in have]
         rows = finish_rows(rows + om_rows)
         snapshot = dict(
-            now=now, interval=INTERVAL, agents=cards, limits=limits, week=week, system=self.system.sample(now),
+            schema=1, now=now, interval=INTERVAL, agents=cards, limits=limits, week=week, system=self.system.sample(now),
             today=dict(cost=sum(r["cost"] or 0 for r in rows), tokens=sum(r["total"] for r in rows),
                        output=sum(r["output"] for r in rows), burn=burn,
                        hours=add_hours(*hours) if hours else [[0, 0]] * 24, models=rows))
