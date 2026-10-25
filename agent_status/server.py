@@ -1,5 +1,6 @@
 """HTTP server: the dashboard page is public, the /status data and /decide need the access key."""
-import json, os, re, secrets, socket, socketserver, time
+import json, os, re, secrets, socket, socketserver, threading, time
+from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -40,6 +41,41 @@ def urls():
             (f"http://{lan_ip()}:{PORT}/?k={key}", "current IP")]
 
 
+def rotate_key(out=print):
+    """Write a new access key atomically; running servers read it on the next request."""
+    path = STATE / "token"
+    STATE.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"token.{os.getpid()}.tmp")
+    tmp.write_text(secrets.token_urlsafe(12))
+    tmp.chmod(0o600)
+    tmp.replace(path)
+    out("agent-status: key rotated; old links no longer work")
+    for url, what in urls():
+        out(f"agent-status: {url}  ({what})")
+
+
+class RateLimiter:
+    """A sliding window per client address. One instance is shared by every handler thread."""
+
+    def __init__(self, limit, window):
+        self.limit, self.window = limit, float(window)
+        self.hits = {}
+        self.lock = threading.Lock()
+
+    def allow(self, client, now=None):
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            q = self.hits.setdefault(client, deque())
+            while q and q[0] <= now - self.window:
+                q.popleft()
+            if len(self.hits) > 1024:  # keep a long-lived server from remembering every address forever
+                self.hits = {k: v for k, v in self.hits.items() if v and v[-1] > now - self.window}
+            if len(q) >= self.limit:
+                return False
+            q.append(now)
+            return True
+
+
 class Server(ThreadingHTTPServer):
     def server_bind(self):
         # http.server's server_bind calls getfqdn("0.0.0.0"), a reverse lookup that blocks for over a minute
@@ -72,14 +108,30 @@ def decide(body, now=None):
     return 200, "ok"
 
 
-def handler(key, collector):
+def handler(key, collector, limits=None):
+    key_of = key if callable(key) else lambda: key
+    limits = limits or {}
+
     class Handler(BaseHTTPRequestHandler):
         def authorized(self, u):
-            return secrets.compare_digest(parse_qs(u.query).get("k", [""])[0], key)
+            try:
+                expected = key_of()
+            except OSError:
+                return False
+            return secrets.compare_digest(parse_qs(u.query).get("k", [""])[0], expected)
+
+        def limited(self, name):
+            limiter = limits.get(name)
+            if not limiter or limiter.allow(self.client_address[0]):
+                return False
+            self.send(429, "application/json", b'{"error":"too many requests"}')
+            return True
 
         def do_GET(self):
             u = urlparse(self.path)
             if u.path == "/status":
+                if self.limited("status"):
+                    return
                 if not self.authorized(u):
                     return self.send(403, "application/json", b'{"error":"bad key"}')
                 if getattr(collector, "demo", False) is not True:
@@ -97,6 +149,8 @@ def handler(key, collector):
             u = urlparse(self.path)
             if u.path != "/decide":
                 return self.send(404, "text/plain", b"not found")
+            if self.limited("decide"):
+                return
             # CSRF: a cross-site page can't send a JSON content type without a CORS preflight (never granted here),
             # doesn't know the key, and a browser always names its origin on a POST.
             origin = self.headers.get("Origin")
@@ -124,7 +178,6 @@ def handler(key, collector):
 
 
 def serve(demo=False):
-    key = token()
     if demo:
         from .demo import Demo
         collector = Demo()  # generated data; nothing on this machine is read
@@ -134,4 +187,5 @@ def serve(demo=False):
         collector.start()
     for url, what in urls():
         print(f"agent-status: {url}  ({what})", flush=True)
-    Server((HOST, PORT), handler(key, collector)).serve_forever()
+    limits = {"status": RateLimiter(5, 1), "decide": RateLimiter(10, 60)}
+    Server((HOST, PORT), handler(token, collector, limits)).serve_forever()

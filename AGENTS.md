@@ -25,6 +25,7 @@ serves a live dashboard to a tablet or phone on the LAN. **Picking up work or pl
 python -m unittest discover -s tests        # all tests; must stay green on Linux and macOS
 python -m agent_status doctor               # check installed hooks against agents.py
 python -m agent_status serve                # run from the checkout (port 8787, AGENT_STATUS_PORT to change)
+python -m agent_status rotate-key           # replace the access key, print the new links
 uv tool install --editable .                # install the CLI from this checkout
 python scripts/make_icons.py                # regenerate web/icon-*.png
 ```

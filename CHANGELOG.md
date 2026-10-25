@@ -28,6 +28,8 @@ First release.
 - The `/status` payload carries `schema: 1` and is documented in [`docs/api.md`](docs/api.md) with a contract test.
 - Hook test harness that runs every installed event as a subprocess, checks the folded state and a 300 ms budget, and
   feeds hostile stdin. Stale state files are cleaned on start and hourly.
+- `agent-status rotate-key` replaces the access key without a restart, and `/status` / `/decide` are rate-limited per
+  client address.
 
 ### Security
 

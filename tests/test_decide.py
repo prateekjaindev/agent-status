@@ -134,10 +134,12 @@ class Decide(Base):
 
 
 class Http(Base):
+    limits = None
+
     def setUp(self):
         super().setUp()
         fake = mock.Mock(json=b'{"agents":[]}')
-        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.handler("KEY", fake))
+        self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.handler("KEY", fake, self.limits))
         threading.Thread(target=self.httpd.serve_forever, daemon=True).start()
         self.addCleanup(self.httpd.server_close)
         self.addCleanup(self.httpd.shutdown)
@@ -165,6 +167,42 @@ class Http(Base):
         c.request("GET", "/status?k=KEY")
         self.assertEqual(c.getresponse().status, 200)
         self.assertTrue(self.seen.exists())
+
+    def test_rotation_invalidates_the_old_key_without_a_restart(self):
+        key = ["OLD"]
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.handler(lambda: key[0], mock.Mock(json=b'{"agents":[]}')))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        self.addCleanup(httpd.server_close)
+        self.addCleanup(httpd.shutdown)
+
+        def get(k):
+            c = HTTPConnection("127.0.0.1", httpd.server_port)
+            c.request("GET", f"/status?k={k}")
+            return c.getresponse().status
+
+        self.assertEqual(get("OLD"), 200)
+        key[0] = "NEW"
+        self.assertEqual(get("OLD"), 403)
+        self.assertEqual(get("NEW"), 200)
+
+
+class LimitsHttp(Http):
+    def setUp(self):
+        self.limits = {"status": server.RateLimiter(2, 60), "decide": server.RateLimiter(5, 60)}
+        super().setUp()
+
+    def get(self):
+        c = HTTPConnection("127.0.0.1", self.httpd.server_port)
+        c.request("GET", "/status?k=KEY")
+        return c.getresponse().status
+
+    def test_status_limit(self):
+        self.assertEqual([self.get(), self.get()], [200, 200])
+        self.assertEqual(self.get(), 429)
+
+    def test_decide_limit(self):
+        self.assertEqual([self.post() for _ in range(5)], [200] * 5)
+        self.assertEqual(self.post(), 429)
 
 
 if __name__ == "__main__":

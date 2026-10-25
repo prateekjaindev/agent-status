@@ -7,6 +7,7 @@
   agent-status doctor            check that installed hooks match this version
   agent-status serve [--demo]    run the dashboard server in the foreground (--demo: fictional data)
   agent-status url               print the dashboard links
+  agent-status rotate-key        create a new access key and print the new links
   agent-status hook AGENT [EVENT]   (called by agent hooks; reads the event JSON on stdin)
 """
 import sys
@@ -27,6 +28,9 @@ def main(argv=None):
         from .server import urls
         for url, what in urls():
             print(f"{url}   ({what})")
+    elif cmd == "rotate-key":
+        from .server import rotate_key
+        rotate_key()
     elif cmd == "install":
         from .install import install
         install(argv[1:])

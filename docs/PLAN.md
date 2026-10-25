@@ -32,7 +32,7 @@ Repo conventions and invariants live in [`AGENTS.md`](../AGENTS.md); they apply 
 | T16 | opencode "needs you" state | 2 Data | M | todo | |
 | T17 | Push notifications when nobody is looking | 3 Interaction | M | todo | |
 | T18 | Session detail view (timeline of recent events) | 3 Interaction | L | todo | T06 |
-| T19 | Key rotation and `/decide` rate limit | 3 Interaction | S | todo | |
+| T19 | Key rotation and `/decide` rate limit | 3 Interaction | S | done | |
 | T20 | Agents on other machines report to one dashboard | 4 Platforms | L | todo | T06, T19 |
 | T21 | macOS temperatures, GPU and Bluetooth batteries | 4 Platforms | M | todo, **needs a human** | T01 |
 | T22 | Windows host support | 4 Platforms | L | todo | T03 |
@@ -52,7 +52,7 @@ Working and verified on Linux (Omarchy, Python 3.14) with an iPad on the LAN:
 - **Demo mode:** `agent-status serve --demo` serves five fictional sessions with moving sparklines; the README screenshots come from it and the contract test checks it.
 - **Prices:** `agent_status/prices.json` is a dated table (Claude and OpenAI), shown in the Models panel; `~/.config/agent-status/prices.json` overrides individual models.
 - **Packaging:** the version lives only in `agent_status/__init__.py`, a wheel builds from it, and a tagged release workflow publishes to PyPI once the owner configures trusted publishing.
-- **Installer and tests:** the interactive installer works, 67 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
+- **Installer and tests:** the interactive installer works, 75 unit tests pass on Linux, `agent-status doctor` reports hooks that are missing or older than the registry, and stale state files are cleaned on start and hourly.
 
 Built from documentation but **not yet run against the real thing**:
 
